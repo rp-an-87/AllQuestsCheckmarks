@@ -136,14 +136,14 @@ namespace AllQuestsCheckmarks.Helpers
             s.Add(Circle(32, 32, 4));
         }
 
-        // a hood over a dark face, on a cloak
+        // a jagged cloak, a pointed hood, a dark angular opening with two narrow angry eyes
         private static void DrawCollector(Surface s)
         {
-            s.Add(Polygon(8, 4, 56, 4, 47, 34, 17, 34));
-            s.Add(Circle(32, 38, 19));
-            s.Cut(Ellipse(32, 37, 9.5f, 11.5f));
-            s.Add(Circle(27.5f, 39, 2.2f));
-            s.Add(Circle(36.5f, 39, 2.2f));
+            s.Add(Polygon(6, 3, 14, 14, 20, 3, 26, 13, 32, 2, 38, 13, 44, 3, 50, 14, 58, 3, 50, 30, 14, 30));
+            s.Add(Polygon(32, 63, 50, 34, 46, 26, 18, 26, 14, 34));
+            s.Cut(Polygon(24.5f, 47, 32, 34, 39.5f, 47, 35.5f, 54.5f, 28.5f, 54.5f));
+            s.Add(Polygon(26, 49.5f, 31.5f, 46.5f, 31.5f, 49, 27, 51.5f));
+            s.Add(Polygon(38, 49.5f, 32.5f, 46.5f, 32.5f, 49, 37, 51.5f));
         }
 
         // an arrow down into a tray
