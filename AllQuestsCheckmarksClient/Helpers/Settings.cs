@@ -161,8 +161,8 @@ namespace AllQuestsCheckmarks.Helpers
             BuyFutureNeeds = general.BindConfig(
                 "Can buy for future needs",
                 false,
-                "Whether or not items you could buy but only need for future quests or hideout upgrades get the overlay and a line in the 'Can buy' list. " +
-                    "Off: only what you need now is shown (what is needed later can be bought later)"
+                "Whether or not items you could buy but only need for future quests or hideout upgrades get the overlay. " +
+                    "Off: only what you need now is outlined (the tooltip list always shows everything)"
             );
 
             SharedConditions = general.BindConfig(

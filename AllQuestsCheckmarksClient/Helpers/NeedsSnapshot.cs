@@ -379,16 +379,19 @@ namespace AllQuestsCheckmarks.Helpers
                     need.BuyBy[i] = buyable ? nonFirMissing[i] : 0;
                 }
 
+                need.Loot = Strength(need.LootBy);
+
+                // the overlay can leave out what is only needed later (the tooltip checklist keeps it)
+                int[] buyForOverlay = (int[])need.BuyBy.Clone();
                 if (!Settings.BuyFutureNeeds!.Value)
                 {
-                    need.BuyBy[QuestLater] = 0;
-                    need.BuyBy[HideoutLater] = 0;
+                    buyForOverlay[QuestLater] = 0;
+                    buyForOverlay[HideoutLater] = 0;
                 }
 
-                need.Loot = Strength(need.LootBy);
-                need.Buy = Strength(need.BuyBy);
+                need.Buy = Strength(buyForOverlay);
 
-                if (need.HandIn || need.CollectorMissing || need.Loot != EStrength.None || need.Buy != EStrength.None)
+                if (need.HandIn || need.CollectorMissing || need.LootBy.Any(n => n > 0) || need.BuyBy.Any(n => n > 0))
                 {
                     _needs.Add(id, need);
                 }
