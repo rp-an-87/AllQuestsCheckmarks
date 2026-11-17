@@ -130,8 +130,15 @@ namespace AllQuestsCheckmarks.Patches
         private static string? _pending;
         private static bool _fromCheckmark;
 
+        // for the frame monitor: which item was hovered last, and when
+        public static string LastHoverItem = "none";
+        public static float LastHoverTime;
+
         public static void OnItemShowTooltip(GridItemView item)
         {
+            LastHoverItem = item.Item?.TemplateId.ToString() ?? "?";
+            LastHoverTime = UnityEngine.Time.realtimeSinceStartup;
+
             System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
             ShowTooltip(item);
 

@@ -69,7 +69,8 @@ namespace AllQuestsCheckmarks
 
             if (frame > 50f)
             {
-                LogSlow($"frame {frame:0} ms, of which this mod {FrameMs:0.0} ms in the previous frame");
+                float now = UnityEngine.Time.realtimeSinceStartup;
+                LogSlow($"frame {frame:0} ms at {now:0.0} s, of which this mod {FrameMs:0.0} ms; last item hovered: {Patches.ItemHoverTooltip.LastHoverItem} {now - Patches.ItemHoverTooltip.LastHoverTime:0.0} s ago");
             }
 
             FrameMs = 0;
