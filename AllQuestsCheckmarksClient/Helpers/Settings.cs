@@ -22,7 +22,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? UseOverlays;
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
-        public static ConfigEntry<int>? OverlayIconSize;
+        public static ConfigEntry<float>? OverlayIconScale;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<bool>? MarkEnoughItems;
@@ -162,11 +162,11 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
             );
 
-            OverlayIconSize = general.BindConfig(
-                "Overlay icon size",
-                24,
-                "Size of the overlay icon in the bottom left corner of an item, in pixels",
-                acceptableValue: new AcceptableValueRange<int>(12, 64)
+            OverlayIconScale = general.BindConfig(
+                "Overlay icon scale",
+                1f,
+                "Scale of the overlay icon (1 = the size of the game's own wishlist icon). The position is the game's: it knows where the item has other markers",
+                acceptableValue: new AcceptableValueRange<float>(0.5f, 2.5f)
             );
 
             ClassicCheckmarks = general.BindConfig(

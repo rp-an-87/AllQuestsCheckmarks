@@ -33,7 +33,9 @@ namespace AllQuestsCheckmarks.Patches
             public bool Examined = true;
             public bool Modified;
             public readonly Dictionary<Graphic, Color> Colors = [];
-            public Image? OwnIcon;
+            public bool IconSaved;
+            public Color IconColor;
+            public Vector3 IconScale;
         }
 
         private static readonly ConditionalWeakTable<WishlistGridView, State> _states = new();
@@ -201,43 +203,23 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
-            // our own icon, bottom left: the game's icon moves around when an item is moved, so it is hidden while ours shows
+            // the game's own icon: it knows where to sit (armor class and other markers); only its picture, strength and scale change
             if (view._icon != null)
             {
-                view._icon.gameObject.SetActive(false);
+                if (!state.IconSaved)
+                {
+                    state.IconSaved = true;
+                    state.IconColor = view._icon.color;
+                    state.IconScale = view._icon.transform.localScale;
+                }
+
+                view.SetIcon(group);
+                view._icon.color = new Color(1f, 1f, 1f, strength);
+                view._icon.transform.localScale = state.IconScale * Settings.OverlayIconScale!.Value;
+                view._icon.gameObject.SetActive(true);
             }
-
-            Image icon = GetIcon(view, state);
-            icon.sprite = EFTHardSettings.Instance.StaticIcons.WishlistSpritesOutline[group];
-            icon.color = new Color(1f, 1f, 1f, strength);
-
-            float size = Settings.OverlayIconSize!.Value;
-            icon.rectTransform.sizeDelta = new Vector2(size, size);
-            icon.gameObject.SetActive(true);
 
             state.Modified = true;
-        }
-
-        private static Image GetIcon(WishlistGridView view, State state)
-        {
-            if (state.OwnIcon != null)
-            {
-                return state.OwnIcon;
-            }
-
-            GameObject go = new("AQC_NeedIcon", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(view.transform, false);
-
-            RectTransform rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-            rect.anchoredPosition = new Vector2(2f, 2f);
-
-            Image image = go.GetComponent<Image>();
-            image.raycastTarget = false;
-            image.preserveAspect = true;
-
-            state.OwnIcon = image;
-            return image;
         }
 
         private static void Restore(WishlistGridView view, State state)
@@ -257,9 +239,10 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
-            if (state.OwnIcon != null)
+            if (view._icon != null && state.IconSaved)
             {
-                state.OwnIcon.gameObject.SetActive(false);
+                view._icon.color = state.IconColor;
+                view._icon.transform.localScale = state.IconScale;
             }
 
             // back to the native look (the real wishlist decides whether it shows)
