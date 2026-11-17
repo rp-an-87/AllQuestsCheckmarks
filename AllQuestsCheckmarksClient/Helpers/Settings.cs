@@ -31,6 +31,10 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? DebugInRaid;
         public static ConfigEntry<bool>? DebugEmptyStash;
 
+        public static ConfigEntry<Color>? OverlayHandInColor;
+        public static ConfigEntry<Color>? OverlayCollectorColor;
+        public static ConfigEntry<Color>? OverlayLootColor;
+        public static ConfigEntry<Color>? OverlayBuyColor;
         public static ConfigEntry<Color>? CheckmarkColor;
         public static ConfigEntry<Color>? NonFirColor;
         public static ConfigEntry<Color>? CollectorColor;
@@ -175,6 +179,30 @@ namespace AllQuestsCheckmarks.Helpers
                 "Collector color",
                 "#bf00ff",
                 "Color of checkmark for collector quest"
+            );
+
+            OverlayHandInColor = colors.BindColor(
+                "Overlay color - hand in",
+                "#ffc71a",
+                "Color of the overlay on items you can hand in to a started quest (out of raid, in your stash)"
+            );
+
+            OverlayCollectorColor = colors.BindColor(
+                "Overlay color - collector",
+                "#f22626",
+                "Color of the overlay on Collector items you don't have yet (in raid)"
+            );
+
+            OverlayLootColor = colors.BindColor(
+                "Overlay color - loot",
+                "#ffffff",
+                "Color of the overlay on items you have to loot (in raid). White keeps the color of the game's own wishlist overlay"
+            );
+
+            OverlayBuyColor = colors.BindColor(
+                "Overlay color - buy",
+                "#ffffff",
+                "Color of the overlay on items you still have to buy (out of raid). White keeps the color of the game's own wishlist overlay"
             );
 
             MarkEnoughItems = colors.BindConfig(

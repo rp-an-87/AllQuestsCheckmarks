@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using UI.DragAndDrop.ItemViews;
 using UnityEngine;
 using UnityEngine.UI;
+using ZGFueDkx.ZGCLib.Config;
 using ZGFueDkx.ZGCLib.helpers;
 
 namespace AllQuestsCheckmarks.Patches
@@ -21,9 +22,6 @@ namespace AllQuestsCheckmarks.Patches
     /// </summary>
     internal static class NeedsOverlay
     {
-        private static readonly Color HandInColor = new(1f, 0.78f, 0.1f);
-        private static readonly Color CollectorColor = new(0.95f, 0.15f, 0.15f);
-
         private static readonly AccessTools.FieldRef<WishlistGridView, MongoID> _templateRef =
             AccessTools.FieldRefAccess<WishlistGridView, MongoID>("_templateId");
 
@@ -109,7 +107,7 @@ namespace AllQuestsCheckmarks.Patches
             {
                 if (need.CollectorMissing)
                 {
-                    color = CollectorColor;
+                    color = Settings.OverlayCollectorColor!.GetValue();
                     corner = true;
                     group = EWishlistGroup.Other;
                     return true;
@@ -122,7 +120,7 @@ namespace AllQuestsCheckmarks.Patches
                 // handing in only makes sense for items in your own stash
                 if (need.HandIn && viewType == EItemViewType.Inventory)
                 {
-                    color = HandInColor;
+                    color = Settings.OverlayHandInColor!.GetValue();
                     corner = true;
                     group = EWishlistGroup.Quests;
                     return true;
@@ -136,7 +134,7 @@ namespace AllQuestsCheckmarks.Patches
                 return false;
             }
 
-            color = Color.white;
+            color = NeedsSnapshot.InRaid ? Settings.OverlayLootColor!.GetValue() : Settings.OverlayBuyColor!.GetValue();
             strength = kind == NeedsSnapshot.EStrength.Now ? 1f : later;
             group = need.FromQuest && need.FromHideout ? EWishlistGroup.Other : need.FromQuest ? EWishlistGroup.Quests : EWishlistGroup.Hideout;
             return true;
