@@ -293,7 +293,7 @@ namespace AllQuestsCheckmarks.Patches
             state.Frame.pixelsPerUnitMultiplier = 2f / Settings.OverlayBorderThickness!.Value;
             state.Frame.gameObject.SetActive(true);
 
-            state.Fill!.color = new Color(color.r, color.g, color.b, 0.16f * strength);
+            state.Fill!.color = new Color(color.r, color.g, color.b, Settings.OverlayGlowStrength!.Value * strength);
             state.Fill.gameObject.SetActive(true);
 
             if (view._icon != null)
@@ -325,7 +325,7 @@ namespace AllQuestsCheckmarks.Patches
             Transform parent = view._border != null ? view._border.transform.parent : view.transform;
             RectTransform? source = view._border != null ? view._border.transform as RectTransform : null;
 
-            state.Fill = NewImage("AQC_Fill", parent, source, Texture2D.whiteTexture != null ? WhiteSprite() : null, Image.Type.Simple);
+            state.Fill = NewImage("AQC_Glow", parent, source, GlowSprite(), Image.Type.Sliced);
             state.Frame = NewImage("AQC_Frame", parent, source, FrameSprite(), Image.Type.Sliced);
         }
 
@@ -358,11 +358,33 @@ namespace AllQuestsCheckmarks.Patches
             return image;
         }
 
-        private static Sprite? _whiteSprite;
+        private static Sprite? _glowSprite;
 
-        private static Sprite WhiteSprite()
+        // a soft glow along the inside of the edge, fading to nothing toward the middle (like the game's own selection glow); sliced, so it keeps its width at any item size
+        private static Sprite GlowSprite()
         {
-            return _whiteSprite ??= Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height), new Vector2(0.5f, 0.5f));
+            if (_glowSprite != null)
+            {
+                return _glowSprite;
+            }
+
+            const int size = 32;
+            const int reach = 12;
+            Texture2D texture = new(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    int distance = Mathf.Min(Mathf.Min(x, y), Mathf.Min(size - 1 - x, size - 1 - y));
+                    float t = Mathf.Clamp01(1f - distance / (float)reach);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, t * t));
+                }
+            }
+
+            texture.Apply();
+            _glowSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(reach, reach, reach, reach));
+            return _glowSprite;
         }
 
         // a hollow square with a 2 px edge, sliced, so the border keeps its thickness at any item size

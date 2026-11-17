@@ -24,6 +24,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
         public static ConfigEntry<int>? OverlayBorderThickness;
+        public static ConfigEntry<float>? OverlayGlowStrength;
         public static ConfigEntry<float>? OverlayFrameBudget;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
@@ -172,10 +173,17 @@ namespace AllQuestsCheckmarks.Helpers
             );
 
             OverlayBorderThickness = general.BindConfig(
-                "Overlay border thickness",
-                3,
-                "Thickness of the colored border around an item with an overlay, in pixels",
-                acceptableValue: new AcceptableValueRange<int>(1, 8)
+                "Overlay border width",
+                1,
+                "Width of the thin colored border around an item with an overlay, in pixels",
+                acceptableValue: new AcceptableValueRange<int>(1, 4)
+            );
+
+            OverlayGlowStrength = general.BindConfig(
+                "Overlay glow strength",
+                0.55f,
+                "How strong the soft glow along the inside of the item edge is (0 = no glow, 1 = full). The border and the icon are not affected",
+                acceptableValue: new AcceptableValueRange<float>(0f, 1f)
             );
 
             OverlayFrameBudget = general.BindConfig(
