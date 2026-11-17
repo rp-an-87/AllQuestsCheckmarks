@@ -23,6 +23,8 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
+        public static ConfigEntry<int>? OverlayBorderThickness;
+        public static ConfigEntry<float>? OverlayFrameBudget;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<bool>? MarkEnoughItems;
@@ -169,6 +171,20 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0.5f, 2.5f)
             );
 
+            OverlayBorderThickness = general.BindConfig(
+                "Overlay border thickness",
+                3,
+                "Thickness of the colored border around an item with an overlay, in pixels",
+                acceptableValue: new AcceptableValueRange<int>(1, 8)
+            );
+
+            OverlayFrameBudget = general.BindConfig(
+                "Overlay drawing budget",
+                2f,
+                "Most milliseconds per frame spent drawing overlays on item icons. Lower is smoother, higher is faster to appear when a screen opens",
+                acceptableValue: new AcceptableValueRange<float>(0.5f, 10f)
+            );
+
             ClassicCheckmarks = general.BindConfig(
                 "Classic colored checkmarks",
                 false,
@@ -210,15 +226,15 @@ namespace AllQuestsCheckmarks.Helpers
             );
 
             OverlayLootColor = colors.BindColor(
-                "Overlay color - loot",
-                "#ffffff",
-                "Color of the overlay on items you have to loot (in raid). White keeps the color of the game's own wishlist overlay"
+                "Overlay color - must loot",
+                "#ff5a2e",
+                "Color of the overlay on items you have to loot (in raid)"
             );
 
             OverlayBuyColor = colors.BindColor(
-                "Overlay color - buy",
-                "#ffffff",
-                "Color of the overlay on items you still have to buy (out of raid). White keeps the color of the game's own wishlist overlay"
+                "Overlay color - can buy",
+                "#4fd36b",
+                "Color of the overlay on items you still have to buy (out of raid)"
             );
 
             MarkEnoughItems = colors.BindConfig(
