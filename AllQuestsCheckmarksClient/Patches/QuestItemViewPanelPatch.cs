@@ -335,8 +335,10 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
+            // "Total needed" is only a fair comparison with "In Stash" when every need of the item is its own: with a shared quest
+            // condition (any of several items) it would be incomplete, so it is left out for every such item
             string totalLine = "";
-            if (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0)
+            if (pools.Count == 0 && (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0))
             {
                 totalLine = string.Format((showNonFirTotal ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
                        totalNeededFir, totalNeededNonFir);
