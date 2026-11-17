@@ -391,18 +391,20 @@ namespace AllQuestsCheckmarks.Patches
                     view._icon.preserveAspect = true;
                 }
 
-                view._icon.color = new Color(1f, 1f, 1f, strength);
+                // the icon has the color of the overlay (white when it has none: the game's own look)
+                Color iconColor = Settings.OverlayIconMatchColor!.Value ? new Color(color.r, color.g, color.b, 1f) : Color.white;
+                view._icon.color = new Color(iconColor.r, iconColor.g, iconColor.b, strength);
                 view._icon.transform.localScale = state.IconScale * Settings.OverlayIconScale!.Value;
                 view._icon.gameObject.SetActive(true);
 
-                ShowClock(view, state, strength < 1f && icon != EIcon.HandIn && icon != EIcon.Collector);
+                ShowClock(view, state, strength < 1f && icon != EIcon.HandIn && icon != EIcon.Collector, iconColor);
             }
 
             state.Modified = true;
         }
 
         // A small clock next to the icon when the need is for later. It is a child of the icon, so it moves and scales with it
-        private static void ShowClock(WishlistGridView view, State state, bool show)
+        private static void ShowClock(WishlistGridView view, State state, bool show, Color color)
         {
             if (!show)
             {
@@ -434,7 +436,7 @@ namespace AllQuestsCheckmarks.Patches
             RectTransform iconRect = (RectTransform)view._icon.transform;
             float side = Mathf.Max(8f, Mathf.Min(iconRect.rect.width, iconRect.rect.height) * 0.6f);
             state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
-            state.Clock.color = Color.white;
+            state.Clock.color = color;
             state.Clock.gameObject.SetActive(true);
         }
 

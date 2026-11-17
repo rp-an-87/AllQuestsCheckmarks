@@ -33,6 +33,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
+        public static ConfigEntry<bool>? OverlayIconMatchColor;
         public static ConfigEntry<int>? OverlayBorderThickness;
         public static ConfigEntry<EOverlayPart>? OverlayBorderStyle;
         public static ConfigEntry<EOverlayPart>? OverlayGlowStyle;
@@ -198,6 +199,12 @@ namespace AllQuestsCheckmarks.Helpers
                 1f,
                 "Scale of the overlay icon (1 = the size of the game's own wishlist icon). The position is the game's: it knows where the item has other markers",
                 acceptableValue: new AcceptableValueRange<float>(0.5f, 2.5f)
+            );
+
+            OverlayIconMatchColor = general.BindConfig(
+                "Overlay icon in the overlay color",
+                true,
+                "Whether the overlay icon (and the clock for later needs) has the same color as the overlay border, so it reads as one thing. Off: white"
             );
 
             OverlayBorderThickness = general.BindConfig(
