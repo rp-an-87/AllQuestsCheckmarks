@@ -77,7 +77,7 @@ namespace AllQuestsCheckmarks
         {
             if (Settings.ShowDebug!.Value)
             {
-                LogSource?.LogDebug(msg);
+                LogSource?.LogInfo("[debug] " + msg);
             }
         }
     }
