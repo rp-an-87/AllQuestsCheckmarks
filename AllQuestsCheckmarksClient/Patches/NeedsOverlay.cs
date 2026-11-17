@@ -427,7 +427,7 @@ namespace AllQuestsCheckmarks.Patches
                 rect.anchoredPosition = new Vector2(1f, 0f);
 
                 Image image = go.GetComponent<Image>();
-                image.sprite = OverlayIcons.Clock;
+                image.sprite = ClockSprite();
                 image.preserveAspect = true;
                 image.raycastTarget = false;
                 state.Clock = image;
@@ -436,6 +436,9 @@ namespace AllQuestsCheckmarks.Patches
             RectTransform iconRect = (RectTransform)view._icon.transform;
             float side = Mathf.Max(8f, Mathf.Min(iconRect.rect.width, iconRect.rect.height) * 0.6f);
             state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
+
+            // tucked against the corner of the icon (overlapping it a little), so the two read as one
+            state.Clock.rectTransform.anchoredPosition = new Vector2(-side * 0.3f, 0f);
             state.Clock.color = color;
             state.Clock.gameObject.SetActive(true);
         }
@@ -485,6 +488,29 @@ namespace AllQuestsCheckmarks.Patches
                 graphic.color = new Color(tint ? color.r : original.r, tint ? color.g : original.g, tint ? color.b : original.b,
                     Mathf.Clamp01((exact ? 1f : original.a) * alpha));
             }
+        }
+
+        // The clock is the game's own one, the icon of the operational (daily) tasks tab
+        private static Sprite? _clockSprite;
+        private static bool _clockTried;
+
+        private static Sprite ClockSprite()
+        {
+            if (!_clockTried)
+            {
+                _clockTried = true;
+
+                try
+                {
+                    _clockSprite = EFTHardSettings.Instance.StaticIcons.QuestIconTypeSprites[EQuestIconType.Daily];
+                }
+                catch (System.Exception)
+                {
+                    _clockSprite = null;
+                }
+            }
+
+            return _clockSprite != null ? _clockSprite : OverlayIcons.Clock;
         }
 
         // The hand in icon is the game's "bring an item" quest icon, the same one CustomRpTweaks puts on its hand in button
