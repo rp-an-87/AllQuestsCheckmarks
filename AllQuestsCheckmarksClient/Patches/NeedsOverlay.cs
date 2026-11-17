@@ -33,8 +33,7 @@ namespace AllQuestsCheckmarks.Patches
             public bool Examined = true;
             public bool Modified;
             public readonly Dictionary<Graphic, Color> Colors = [];
-            public Vector2 IconAnchorMin, IconAnchorMax, IconPivot, IconPosition;
-            public bool IconSaved;
+            public Image? OwnIcon;
         }
 
         private static readonly ConditionalWeakTable<WishlistGridView, State> _states = new();
@@ -109,7 +108,7 @@ namespace AllQuestsCheckmarks.Patches
                     return;
                 }
 
-                Style(view, state, color, strength, group, corner);
+                Style(view, state, color, strength, group);
             }
             finally
             {
@@ -178,7 +177,7 @@ namespace AllQuestsCheckmarks.Patches
             return true;
         }
 
-        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group, bool corner)
+        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group)
         {
             view.SetElementsActive(true);
 
@@ -202,40 +201,43 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
+            // our own icon, bottom left: the game's icon moves around when an item is moved, so it is hidden while ours shows
             if (view._icon != null)
             {
-                RectTransform rect = view._icon.rectTransform;
-
-                if (!state.IconSaved)
-                {
-                    state.IconSaved = true;
-                    state.IconAnchorMin = rect.anchorMin;
-                    state.IconAnchorMax = rect.anchorMax;
-                    state.IconPivot = rect.pivot;
-                    state.IconPosition = rect.anchoredPosition;
-                }
-
-                view.SetIcon(group);
-
-                Color iconColor = view._icon.color;
-                view._icon.color = new Color(iconColor.r, iconColor.g, iconColor.b, strength);
-
-                if (corner)
-                {
-                    // bottom left, like the owner asked for the hand-in and collector markers
-                    rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-                    rect.anchoredPosition = new Vector2(2f, 2f);
-                }
-                else
-                {
-                    rect.anchorMin = state.IconAnchorMin;
-                    rect.anchorMax = state.IconAnchorMax;
-                    rect.pivot = state.IconPivot;
-                    rect.anchoredPosition = state.IconPosition;
-                }
+                view._icon.gameObject.SetActive(false);
             }
 
+            Image icon = GetIcon(view, state);
+            icon.sprite = EFTHardSettings.Instance.StaticIcons.WishlistSpritesOutline[group];
+            icon.color = new Color(1f, 1f, 1f, strength);
+
+            float size = Settings.OverlayIconSize!.Value;
+            icon.rectTransform.sizeDelta = new Vector2(size, size);
+            icon.gameObject.SetActive(true);
+
             state.Modified = true;
+        }
+
+        private static Image GetIcon(WishlistGridView view, State state)
+        {
+            if (state.OwnIcon != null)
+            {
+                return state.OwnIcon;
+            }
+
+            GameObject go = new("AQC_NeedIcon", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(view.transform, false);
+
+            RectTransform rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+            rect.anchoredPosition = new Vector2(2f, 2f);
+
+            Image image = go.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.preserveAspect = true;
+
+            state.OwnIcon = image;
+            return image;
         }
 
         private static void Restore(WishlistGridView view, State state)
@@ -255,16 +257,9 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
-            if (view._icon != null && state.IconSaved)
+            if (state.OwnIcon != null)
             {
-                RectTransform rect = view._icon.rectTransform;
-                rect.anchorMin = state.IconAnchorMin;
-                rect.anchorMax = state.IconAnchorMax;
-                rect.pivot = state.IconPivot;
-                rect.anchoredPosition = state.IconPosition;
-
-                Color iconColor = view._icon.color;
-                view._icon.color = new Color(iconColor.r, iconColor.g, iconColor.b, 1f);
+                state.OwnIcon.gameObject.SetActive(false);
             }
 
             // back to the native look (the real wishlist decides whether it shows)

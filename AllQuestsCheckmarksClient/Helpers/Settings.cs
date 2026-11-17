@@ -22,6 +22,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? UseOverlays;
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
+        public static ConfigEntry<int>? OverlayIconSize;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<bool>? MarkEnoughItems;
@@ -159,6 +160,13 @@ namespace AllQuestsCheckmarks.Helpers
                 0.5f,
                 "How strong the overlay is for items needed only for future quests or hideout upgrades (1 = same as needed now)",
                 acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
+            );
+
+            OverlayIconSize = general.BindConfig(
+                "Overlay icon size",
+                24,
+                "Size of the overlay icon in the bottom left corner of an item, in pixels",
+                acceptableValue: new AcceptableValueRange<int>(12, 64)
             );
 
             ClassicCheckmarks = general.BindConfig(
