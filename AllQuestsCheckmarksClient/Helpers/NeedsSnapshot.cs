@@ -29,6 +29,17 @@ namespace AllQuestsCheckmarks.Helpers
             Now = 2,
         }
 
+        // Why an item is needed (shown in the tooltip)
+        [Flags]
+        public enum EReason
+        {
+            None = 0,
+            QuestNow = 1,
+            QuestLater = 2,
+            HideoutNow = 4,
+            HideoutLater = 8,
+        }
+
         public class ItemNeed
         {
             public bool HandIn;
@@ -37,13 +48,27 @@ namespace AllQuestsCheckmarks.Helpers
             public bool FromHideout;
             public EStrength Loot;
             public EStrength Buy;
+
+            // how many are still missing, and for what
+            public int LootCount;
+            public EReason LootReasons;
+            public int BuyCount;
+            public EReason BuyReasons;
+            public int HandInCount;
         }
 
         private class Acc
         {
             public int FirNow, FirLater, NonFirNow, NonFirLater;
-            public bool PoolFirNow, PoolFirLater, PoolNonFirNow, PoolNonFirLater;
+            public int PoolFirNow, PoolFirLater, PoolNonFirNow, PoolNonFirLater;
+            public EReason FirNowSrc, FirLaterSrc, NonFirNowSrc, NonFirLaterSrc;
+            public int HandInCount;
             public bool HandIn, Collector, Quest, Hideout;
+        }
+
+        private static EReason Source(bool now, bool hideout)
+        {
+            return hideout ? (now ? EReason.HideoutNow : EReason.HideoutLater) : (now ? EReason.QuestNow : EReason.QuestLater);
         }
 
         private class Pool(List<MongoID> targets, int remaining, bool fir, bool now, bool collector)
@@ -209,6 +234,17 @@ namespace AllQuestsCheckmarks.Helpers
                     if (pool.Now && heldByPool > 0 && own is not null && (pool.Fir ? own.Fir : own.Total) > 0)
                     {
                         acc.HandIn = true;
+                        acc.HandInCount += Math.Min(pool.Remaining, pool.Targets.Count == 1 ? (pool.Fir ? own.Fir : own.Total) : heldByPool);
+                    }
+
+                    EReason source = Source(pool.Now, false);
+                    if (pool.Fir)
+                    {
+                        if (pool.Now) acc.FirNowSrc |= source; else acc.FirLaterSrc |= source;
+                    }
+                    else
+                    {
+                        if (pool.Now) acc.NonFirNowSrc |= source; else acc.NonFirLaterSrc |= source;
                     }
 
                     if (pool.Collector)
@@ -231,13 +267,15 @@ namespace AllQuestsCheckmarks.Helpers
                     else if (heldByPool < pool.Remaining)
                     {
                         // several items share the count: short until the sum of what you hold reaches it
+                        int shortBy = pool.Remaining - heldByPool;
+
                         if (pool.Fir)
                         {
-                            if (pool.Now) acc.PoolFirNow = true; else acc.PoolFirLater = true;
+                            if (pool.Now) acc.PoolFirNow += shortBy; else acc.PoolFirLater += shortBy;
                         }
                         else
                         {
-                            if (pool.Now) acc.PoolNonFirNow = true; else acc.PoolNonFirLater = true;
+                            if (pool.Now) acc.PoolNonFirNow += shortBy; else acc.PoolNonFirLater += shortBy;
                         }
                     }
                 }
@@ -251,14 +289,15 @@ namespace AllQuestsCheckmarks.Helpers
                 {
                     Acc acc = AccFor(new MongoID(hItems[i]));
                     acc.Hideout = true;
+                    EReason source = Source(!hFuture[i], true);
 
                     if (hFir[i])
                     {
-                        if (hFuture[i]) acc.FirLater += hQty[i]; else acc.FirNow += hQty[i];
+                        if (hFuture[i]) { acc.FirLater += hQty[i]; acc.FirLaterSrc |= source; } else { acc.FirNow += hQty[i]; acc.FirNowSrc |= source; }
                     }
                     else
                     {
-                        if (hFuture[i]) acc.NonFirLater += hQty[i]; else acc.NonFirNow += hQty[i];
+                        if (hFuture[i]) { acc.NonFirLater += hQty[i]; acc.NonFirLaterSrc |= source; } else { acc.NonFirNow += hQty[i]; acc.NonFirNowSrc |= source; }
                     }
                 }
             }
@@ -285,10 +324,22 @@ namespace AllQuestsCheckmarks.Helpers
 
                 bool buyable = IsBuyable(id);
 
-                bool firNow = shortFirNow > 0 || acc.PoolFirNow;
-                bool firLater = shortFirLater > 0 || acc.PoolFirLater;
-                bool nonFirNow = shortNonFirNow > 0 || acc.PoolNonFirNow;
-                bool nonFirLater = shortNonFirLater > 0 || acc.PoolNonFirLater;
+                shortFirNow += acc.PoolFirNow;
+                shortFirLater += acc.PoolFirLater;
+                shortNonFirNow += acc.PoolNonFirNow;
+                shortNonFirLater += acc.PoolNonFirLater;
+
+                bool firNow = shortFirNow > 0;
+                bool firLater = shortFirLater > 0;
+                bool nonFirNow = shortNonFirNow > 0;
+                bool nonFirLater = shortNonFirLater > 0;
+
+                // what is missing, and what for: FiR gaps (and non-FiR gaps that can't be bought) are for looting, the rest for buying
+                EReason lootReasons = (firNow ? acc.FirNowSrc : 0) | (firLater ? acc.FirLaterSrc : 0)
+                    | (!buyable && nonFirNow ? acc.NonFirNowSrc : 0) | (!buyable && nonFirLater ? acc.NonFirLaterSrc : 0);
+                int lootCount = shortFirNow + shortFirLater + (buyable ? 0 : shortNonFirNow + shortNonFirLater);
+                EReason buyReasons = buyable ? (nonFirNow ? acc.NonFirNowSrc : 0) | (nonFirLater ? acc.NonFirLaterSrc : 0) : 0;
+                int buyCount = buyable ? shortNonFirNow + shortNonFirLater : 0;
 
                 // in raid: loot it when FiR copies are short, or when it can't be bought; out of raid: buy it when it can be
                 EStrength loot = firNow || !buyable && nonFirNow ? EStrength.Now
@@ -303,6 +354,11 @@ namespace AllQuestsCheckmarks.Helpers
                     FromHideout = acc.Hideout,
                     Loot = loot,
                     Buy = buy,
+                    LootCount = lootCount,
+                    LootReasons = lootReasons,
+                    BuyCount = buyCount,
+                    BuyReasons = buyReasons,
+                    HandInCount = acc.HandInCount,
                 };
 
                 if (need.HandIn || need.CollectorMissing || need.Loot != EStrength.None || need.Buy != EStrength.None)

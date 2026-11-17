@@ -65,6 +65,7 @@ namespace AllQuestsCheckmarks.Patches
 
             ____tooltip = tooltip;
             ____tooltipText = "";
+            ItemHoverTooltip.SetItem(__instance, item.TemplateId);
 
             bool separated = Settings.SeparatedTooltip!.Value;
             string foundInRaidLine = "";
@@ -328,6 +329,12 @@ namespace AllQuestsCheckmarks.Patches
             int leftFir = inStash.Fir - totalNeededFir;
             QuestsHelper.ECheckmarkStatus status = QuestsHelper.GetCheckmarkStatus(neededForActive, neededForFuture, neededForFriend, item.MarkedAsSpawnedInSession,
                 leftFir >= 0 && inStash.NonFir + leftFir - totalNeededNonFir >= 0, collectorOnly);
+
+            // the action line is filled in when the tooltip is shown (what you hold changes)
+            if (Settings.ActionLine!.Value)
+            {
+                ____tooltipText += ItemHoverTooltip.ActionToken;
+            }
 
             // the tooltip text above stays; hovering the item uses it whenever something is needed, even if no checkmark is drawn
             ItemHoverTooltip.SetRelevant(__instance, status != QuestsHelper.ECheckmarkStatus.None);

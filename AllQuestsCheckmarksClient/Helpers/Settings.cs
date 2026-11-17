@@ -18,6 +18,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? CheckmarkOnNonFir;
         public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? SeparatedTooltip;
+        public static ConfigEntry<bool>? ActionLine;
         public static ConfigEntry<bool>? UseOverlays;
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
@@ -137,6 +138,13 @@ namespace AllQuestsCheckmarks.Helpers
                 "Small FiR labels",
                 true,
                 "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey"
+            );
+
+            ActionLine = general.BindConfig(
+                "Action line in the tooltip",
+                true,
+                "Whether or not the tooltip should end with a small line saying what to do with the item and why " +
+                    "(for example: can buy 3 for current hideout upgrades and future quests, or needs to be looted in raid)"
             );
 
             UseOverlays = general.BindConfig(
