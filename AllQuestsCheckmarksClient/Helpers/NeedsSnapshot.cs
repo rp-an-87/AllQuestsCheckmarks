@@ -52,6 +52,10 @@ namespace AllQuestsCheckmarks.Helpers
             // what is still missing per source: FiR copies (and non-FiR copies that can't be bought) to loot, non-FiR copies to buy
             public readonly int[] LootBy = new int[Sources];
             public readonly int[] BuyBy = new int[Sources];
+
+            // the two parts of LootBy: FiR copies missing, and non-FiR copies missing for items that can't be bought
+            public readonly int[] FirBy = new int[Sources];
+            public readonly int[] UnbuyableBy = new int[Sources];
             public int HandInCount;
         }
 
@@ -354,7 +358,9 @@ namespace AllQuestsCheckmarks.Helpers
                 for (int i = 0; i < Sources; i++)
                 {
                     // in raid: loot it when FiR copies are short, or when it can't be bought; out of raid: buy it when it can be
-                    need.LootBy[i] = firMissing[i] + (buyable ? 0 : nonFirMissing[i]);
+                    need.FirBy[i] = firMissing[i];
+                    need.UnbuyableBy[i] = buyable ? 0 : nonFirMissing[i];
+                    need.LootBy[i] = need.FirBy[i] + need.UnbuyableBy[i];
                     need.BuyBy[i] = buyable ? nonFirMissing[i] : 0;
                 }
 

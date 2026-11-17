@@ -90,7 +90,7 @@ namespace AllQuestsCheckmarks.Patches
             return result.Length == 0 ? "" : "<size=85%><color=#B8B8B8>" + headerKey.Localized(null) + "</color></size>" + result;
         }
 
-        // What to do with the item right now: loot it in raid, hand in / buy it out of raid
+        // What to do with the item right now. Out of raid: hand in, buy, and what still has to be found in a raid. In raid: what to get
         private static string BuildAction(MongoID templateId)
         {
             if (!Settings.ActionLine!.Value || !NeedsSnapshot.TryGet(templateId, out NeedsSnapshot.ItemNeed need))
@@ -98,31 +98,32 @@ namespace AllQuestsCheckmarks.Patches
                 return "";
             }
 
+            List<string> blocks = [];
+
             if (NeedsSnapshot.InRaid)
             {
-                string loot = Checklist("aqc_header_loot", need.LootBy, " " + "aqc_fir".Localized(null));
-
                 if (need.CollectorMissing)
                 {
-                    loot = ("aqc_action_collector".Localized(null) + (loot.Length > 0 ? "\n" : "")) + loot;
+                    blocks.Add("aqc_action_collector".Localized(null));
+                }
+            }
+            else
+            {
+                if (need.HandIn && need.HandInCount > 0)
+                {
+                    int[] handIn = new int[NeedsSnapshot.Sources];
+                    handIn[NeedsSnapshot.QuestNow] = need.HandInCount;
+                    blocks.Add(Checklist("aqc_header_handin", handIn, ""));
                 }
 
-                return loot;
+                blocks.Add(Checklist("aqc_header_buy", need.BuyBy, ""));
             }
 
-            string action = "";
+            // found in raid needs can't be bought: they are the same in a raid and in the hideout
+            blocks.Add(Checklist("aqc_header_fir", need.FirBy, ""));
+            blocks.Add(Checklist("aqc_header_unbuyable", need.UnbuyableBy, ""));
 
-            if (need.HandIn && need.HandInCount > 0)
-            {
-                int[] handIn = new int[NeedsSnapshot.Sources];
-                handIn[NeedsSnapshot.QuestNow] = need.HandInCount;
-                action = Checklist("aqc_header_handin", handIn, "");
-            }
-
-            string buy = Checklist("aqc_header_buy", need.BuyBy, "");
-
-            // FiR needs can't be bought and are only worth knowing about in a raid
-            return action.Length > 0 && buy.Length > 0 ? action + "\n" + buy : action + buy;
+            return string.Join("\n", blocks.Where(b => b.Length > 0));
         }
 
         private static string? _pending;
