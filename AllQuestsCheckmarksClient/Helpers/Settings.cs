@@ -19,6 +19,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? SeparatedTooltip;
         public static ConfigEntry<bool>? ActionLine;
+        public static ConfigEntry<bool>? SharedConditions;
         public static ConfigEntry<bool>? UseOverlays;
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
@@ -142,6 +143,13 @@ namespace AllQuestsCheckmarks.Helpers
                 "Small FiR labels",
                 true,
                 "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey"
+            );
+
+            SharedConditions = general.BindConfig(
+                "Shared quest conditions",
+                true,
+                "Whether or not quest conditions that accept several item types for one shared count (for example any dogtag) are counted together. " +
+                    "Off: they are ignored by the overlays and the checklist (each item just lists the quest)"
             );
 
             ActionLine = general.BindConfig(

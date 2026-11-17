@@ -54,6 +54,21 @@ namespace AllQuestsCheckmarks.Patches
         static bool Prefix(Profile profile, Item item, [CanBeNull] SimpleTooltip tooltip, QuestItemViewPanel __instance, Image ____questIconImage,
             Sprite ____foundInRaidSprite, Sprite ____questItemSprite, ref string ____tooltipText, ref SimpleTooltip ____tooltip, TextMeshProUGUI ____questItemLabel)
         {
+            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+            bool result = PrefixCore(profile, item, tooltip, __instance, ____questIconImage, ____foundInRaidSprite, ____questItemSprite,
+                ref ____tooltipText, ref ____tooltip, ____questItemLabel);
+
+            if (watch.ElapsedMilliseconds >= 3)
+            {
+                Plugin.LogDebug($"Slow checkmark panel build: {watch.ElapsedMilliseconds} ms for {item.TemplateId}");
+            }
+
+            return result;
+        }
+
+        static bool PrefixCore(Profile profile, Item item, SimpleTooltip tooltip, QuestItemViewPanel __instance, Image ____questIconImage,
+            Sprite ____foundInRaidSprite, Sprite ____questItemSprite, ref string ____tooltipText, ref SimpleTooltip ____tooltip, TextMeshProUGUI ____questItemLabel)
+        {
             __instance.HideGameObject();
 
             if (____questItemLabel != null)
@@ -80,7 +95,7 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             bool showNonFir = Settings.IncludeNonFir!.Value;
-            StashHelper.ItemsCount inStash = StashHelper.GetItemsInStash(item.TemplateId);
+            StashHelper.ItemsCount inStash = NeedsSnapshot.Held(item.TemplateId);
             string stashLine = string.Format("aqc_in_stash".Localized(null), inStash.Total, inStash.Fir);
 
             bool neededForActive = false;
@@ -112,7 +127,7 @@ namespace AllQuestsCheckmarks.Patches
                 {
                     if (pool.QuestId == questId)
                     {
-                        return " " + string.Format("aqc_pool_note".Localized(null), pool.TargetCount, pool.Held);
+                        return "\n    " + string.Format("aqc_pool_note".Localized(null), pool.TargetCount, pool.Held);
                     }
                 }
 

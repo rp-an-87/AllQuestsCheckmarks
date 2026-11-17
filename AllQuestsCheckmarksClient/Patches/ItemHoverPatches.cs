@@ -132,6 +132,17 @@ namespace AllQuestsCheckmarks.Patches
 
         public static void OnItemShowTooltip(GridItemView item)
         {
+            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+            ShowTooltip(item);
+
+            if (watch.ElapsedMilliseconds >= 3)
+            {
+                Plugin.LogDebug($"Slow hover tooltip: {watch.ElapsedMilliseconds} ms for {item.Item?.TemplateId}");
+            }
+        }
+
+        private static void ShowTooltip(GridItemView item)
+        {
             _pending = null;
 
             if (!Settings.HoverItemTooltip!.Value)

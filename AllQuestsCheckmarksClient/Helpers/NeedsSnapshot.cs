@@ -95,6 +95,8 @@ namespace AllQuestsCheckmarks.Helpers
         private static readonly Dictionary<MongoID, ItemNeed> _needs = [];
         private static readonly Dictionary<MongoID, List<PoolInfo>> _pools = [];
         private static readonly Dictionary<MongoID, bool> _buyable = [];
+        private static readonly StashHelper.ItemsCount _none = new();
+        private static Dictionary<MongoID, StashHelper.ItemsCount> _held = [];
         private static bool _dirty = true;
         private static float _builtAt;
         private static bool _builtInRaid;
@@ -115,6 +117,13 @@ namespace AllQuestsCheckmarks.Helpers
         {
             EnsureFresh();
             return _needs.TryGetValue(itemId, out need);
+        }
+
+        // What you hold of one item (from the cached count: much cheaper than going through the whole inventory every time)
+        public static StashHelper.ItemsCount Held(MongoID itemId)
+        {
+            EnsureFresh();
+            return _held.TryGetValue(itemId, out StashHelper.ItemsCount count) ? count : _none;
         }
 
         // Quest conditions that several items share, as seen from one item (empty for most items)
@@ -171,6 +180,7 @@ namespace AllQuestsCheckmarks.Helpers
 
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
             Dictionary<MongoID, StashHelper.ItemsCount> held = Settings.DebugEmptyStash!.Value ? [] : StashHelper.CountAll();
+            _held = held;
             Dictionary<MongoID, Acc> accs = [];
             List<Pool> pools = [];
 
@@ -259,6 +269,11 @@ namespace AllQuestsCheckmarks.Helpers
 
             foreach (Pool pool in pools)
             {
+                if (pool.Targets.Count > 1 && !Settings.SharedConditions!.Value)
+                {
+                    continue;
+                }
+
                 int heldByPool = pool.Targets.Sum(t => held.TryGetValue(t, out StashHelper.ItemsCount c) ? (pool.Fir ? c.Fir : c.Total) : 0);
                 bool shared = pool.Targets.Count > 1;
                 int sourceIndex = pool.Now ? QuestNow : QuestLater;
