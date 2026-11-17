@@ -1,6 +1,7 @@
 ﻿using AllQuestsCheckmarks.Helpers;
 using EFT;
 using EFT.InventoryLogic;
+using EFT.Quests;
 using EFT.UI.DragAndDrop;
 using HarmonyLib;
 using SPT.Reflection.Patching;
@@ -33,6 +34,7 @@ namespace AllQuestsCheckmarks.Patches
             Group,
             HandIn,
             Collector,
+            Both,
         }
 
         private static readonly AccessTools.FieldRef<WishlistGridView, MongoID> _templateRef =
@@ -317,6 +319,7 @@ namespace AllQuestsCheckmarks.Patches
 
             strength = kind == NeedsSnapshot.EStrength.Now ? 1f : later;
             group = need.FromQuest && need.FromHideout ? EWishlistGroup.Other : need.FromQuest ? EWishlistGroup.Quests : EWishlistGroup.Hideout;
+            icon = need.FromQuest && need.FromHideout ? EIcon.Both : EIcon.Group;
             return true;
         }
 
@@ -370,13 +373,21 @@ namespace AllQuestsCheckmarks.Patches
                     state.IconScale = view._icon.transform.localScale;
                 }
 
-                if (icon == EIcon.Group)
+                Sprite? custom = icon switch
+                {
+                    EIcon.HandIn => HandInSprite(),
+                    EIcon.Collector => OverlayIcons.Collector,
+                    EIcon.Both => BothSprite(),
+                    _ => null,
+                };
+
+                if (custom == null)
                 {
                     view.SetIcon(group);
                 }
                 else
                 {
-                    view._icon.sprite = icon == EIcon.HandIn ? OverlayIcons.HandIn : OverlayIcons.Collector;
+                    view._icon.sprite = custom;
                     view._icon.preserveAspect = true;
                 }
 
@@ -384,7 +395,7 @@ namespace AllQuestsCheckmarks.Patches
                 view._icon.transform.localScale = state.IconScale * Settings.OverlayIconScale!.Value;
                 view._icon.gameObject.SetActive(true);
 
-                ShowClock(view, state, strength < 1f && icon == EIcon.Group);
+                ShowClock(view, state, strength < 1f && icon != EIcon.HandIn && icon != EIcon.Collector);
             }
 
             state.Modified = true;
@@ -472,6 +483,110 @@ namespace AllQuestsCheckmarks.Patches
                 graphic.color = new Color(tint ? color.r : original.r, tint ? color.g : original.g, tint ? color.b : original.b,
                     Mathf.Clamp01((exact ? 1f : original.a) * alpha));
             }
+        }
+
+        // The hand in icon is the game's "bring an item" quest icon, the same one CustomRpTweaks puts on its hand in button
+        private static Sprite? _handIn;
+        private static bool _handInTried;
+
+        private static Sprite HandInSprite()
+        {
+            if (!_handInTried)
+            {
+                _handInTried = true;
+
+                try
+                {
+                    _handIn = EFTHardSettings.Instance.StaticIcons.QuestIconTypeSprites[EQuestIconType.PickUp];
+                }
+                catch (System.Exception)
+                {
+                    _handIn = null;
+                }
+            }
+
+            return _handIn != null ? _handIn : OverlayIcons.HandIn;
+        }
+
+        private static Sprite? _both;
+        private static bool _bothTried;
+
+        // The hideout icon and the quest icon in one: hideout on the upper left, quest on the lower right, split by a thin diagonal gap
+        private static Sprite? BothSprite()
+        {
+            if (_bothTried)
+            {
+                return _both;
+            }
+
+            _bothTried = true;
+
+            try
+            {
+                var icons = EFTHardSettings.Instance.StaticIcons.WishlistSpritesOutline;
+                Sprite hideout = icons[EWishlistGroup.Hideout];
+                Sprite quest = icons[EWishlistGroup.Quests];
+
+                int width = Mathf.RoundToInt(hideout.textureRect.width);
+                int height = Mathf.RoundToInt(hideout.textureRect.height);
+                Color32[] upper = ReadPixels(hideout, width, height);
+                Color32[] lower = ReadPixels(quest, width, height);
+                Color32[] result = new Color32[width * height];
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        // the diagonal runs from the lower left to the upper right corner
+                        float side = (float)y / height - (float)x / width;
+                        int i = y * width + x;
+
+                        if (Mathf.Abs(side) < 0.05f)
+                        {
+                            result[i] = new Color32(0, 0, 0, 0);
+                        }
+                        else
+                        {
+                            result[i] = side > 0 ? upper[i] : lower[i];
+                        }
+                    }
+                }
+
+                Texture2D texture = new(width, height, TextureFormat.RGBA32, false) { filterMode = hideout.texture.filterMode, wrapMode = TextureWrapMode.Clamp };
+                texture.SetPixels32(result);
+                texture.Apply();
+                _both = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), hideout.pixelsPerUnit);
+            }
+            catch (System.Exception e)
+            {
+                Plugin.LogSource?.LogWarning($"Could not make the combined hideout / quest icon, using the game's 'other' icon: {e.Message}");
+                _both = null;
+            }
+
+            return _both;
+        }
+
+        // The pixels of a sprite, scaled to width x height (the game's textures are not readable, so through a render texture)
+        private static Color32[] ReadPixels(Sprite source, int width, int height)
+        {
+            Texture2D texture = source.texture;
+            Rect rect = source.textureRect;
+
+            RenderTexture target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(texture, target,
+                new Vector2(rect.width / texture.width, rect.height / texture.height),
+                new Vector2(rect.x / texture.width, rect.y / texture.height));
+
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture.active = target;
+            Texture2D copy = new(width, height, TextureFormat.RGBA32, false);
+            copy.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(target);
+
+            Color32[] pixels = copy.GetPixels32();
+            UnityEngine.Object.Destroy(copy);
+            return pixels;
         }
 
         private static readonly Dictionary<Sprite, Sprite?> _whiteCopies = [];
