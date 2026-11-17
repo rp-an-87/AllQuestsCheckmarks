@@ -7,6 +7,7 @@ using System.Reflection;
 using EFT;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AllQuestsCheckmarks.Patches
