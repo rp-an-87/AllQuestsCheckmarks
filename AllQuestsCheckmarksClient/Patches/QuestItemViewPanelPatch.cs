@@ -240,7 +240,7 @@ namespace AllQuestsCheckmarks.Patches
             // hideout non-FiR needs must show in the total even when non-FiR quests are off
             bool showNonFirTotal = showNonFir || neededForHideout && hideoutNonFir > 0;
 
-            if (!item.MarkedAsSpawnedInSession && totalNeededFir > 0)
+            if (Settings.CheckmarkOnNonFir!.Value && !item.MarkedAsSpawnedInSession && totalNeededFir > 0)
             {
                 ____tooltipText += "\n" + "aqc_copy_not_fir".Localized(null);
             }
