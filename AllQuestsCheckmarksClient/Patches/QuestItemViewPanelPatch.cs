@@ -26,8 +26,14 @@ namespace AllQuestsCheckmarks.Patches
         // Item icons of hideout upgrade requirements are created with the Hideout view type
         private static bool IsHideoutView(QuestItemViewPanel panel)
         {
+            // by place (the requirement panels of an upgrade) or by view type (created through the hideout item view factory)
+            bool inRequirementPanel = panel.GetComponentInParent<EFT.Hideout.ItemRequirementPanel>() != null;
             ItemView? view = panel.GetComponentInParent<ItemView>();
-            return view?.ItemContext is not null && view.ItemContext.ViewType == EItemViewType.Hideout;
+            EItemViewType? viewType = view?.ItemContext?.ViewType;
+
+            Plugin.LogDebug($"Checkmark panel: requirement panel={inRequirementPanel}, view type={viewType}");
+
+            return inRequirementPanel || viewType == EItemViewType.Hideout;
         }
 
         private static string FirLabel(bool fir)
