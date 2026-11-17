@@ -43,6 +43,9 @@ namespace AllQuestsCheckmarks.Helpers
         public class ItemNeed
         {
             public bool HandIn;
+
+            // a started quest that takes any copy (not only found in raid ones) is waiting for it
+            public bool HandInAnyCopy;
             public bool CollectorMissing;
             public bool FromQuest;
             public bool FromHideout;
@@ -78,7 +81,7 @@ namespace AllQuestsCheckmarks.Helpers
             public readonly int[] PoolFirShort = new int[Sources];
             public readonly int[] PoolNonFirShort = new int[Sources];
             public int HandInCount;
-            public bool HandIn, Collector, Quest, Hideout;
+            public bool HandIn, HandInAnyCopy, Collector, Quest, Hideout;
         }
 
         private class Pool(MongoID questId, List<MongoID> targets, int remaining, int fullCount, bool fir, bool now, bool collector)
@@ -287,6 +290,7 @@ namespace AllQuestsCheckmarks.Helpers
                     if (pool.Now && heldByPool > 0 && own is not null && (pool.Fir ? own.Fir : own.Total) > 0)
                     {
                         acc.HandIn = true;
+                        acc.HandInAnyCopy |= !pool.Fir;
                         acc.HandInCount += Math.Min(pool.Remaining, shared ? heldByPool : (pool.Fir ? own.Fir : own.Total));
                     }
 
@@ -364,6 +368,7 @@ namespace AllQuestsCheckmarks.Helpers
                 ItemNeed need = new()
                 {
                     HandIn = acc.HandIn,
+                    HandInAnyCopy = acc.HandInAnyCopy,
                     CollectorMissing = acc.Collector && heldFir < 1,
                     FromQuest = acc.Quest,
                     FromHideout = acc.Hideout,

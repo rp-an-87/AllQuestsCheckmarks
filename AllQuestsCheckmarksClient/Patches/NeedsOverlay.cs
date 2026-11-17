@@ -241,6 +241,9 @@ namespace AllQuestsCheckmarks.Patches
             ItemView? itemView = view.GetComponentInParent<ItemView>();
             EItemViewType? viewType = itemView?.ItemContext?.ViewType;
 
+            // a copy that is not found in raid can't fill a need for found in raid items
+            bool notFirCopy = itemView?.Item is { MarkedAsSpawnedInSession: false };
+
             // not set up yet: look again a moment later
             if (viewType == null && state.Retries < 4 && Plugin.Instance != null)
             {
@@ -261,18 +264,30 @@ namespace AllQuestsCheckmarks.Patches
             {
                 if (need.CollectorMissing)
                 {
-                    color = Settings.OverlayCollectorColor!.GetValue();
+                    // the Collector wants found in raid copies: nothing to do with a non-FiR one
+                    if (notFirCopy)
+                    {
+                        return false;
+                    }
+
                     group = EWishlistGroup.Other;
+                    color = Settings.OverlayCollectorColor!.GetValue();
                     return true;
                 }
 
                 kind = need.Loot;
                 color = Settings.OverlayLootColor!.GetValue();
+
+                // missing found in raid copies only: a non-FiR copy is no use for those, so there is nothing to do with it
+                if (kind != NeedsSnapshot.EStrength.None && notFirCopy && need.FirBy.Sum() > 0 && need.UnbuyableBy.Sum() == 0)
+                {
+                    return false;
+                }
             }
             else
             {
                 // handing in only makes sense for items in your own stash
-                if (need.HandIn && viewType == EItemViewType.Inventory)
+                if (need.HandIn && viewType == EItemViewType.Inventory && (!notFirCopy || need.HandInAnyCopy))
                 {
                     color = Settings.OverlayHandInColor!.GetValue();
                     group = EWishlistGroup.Quests;
