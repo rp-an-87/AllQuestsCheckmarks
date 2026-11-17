@@ -17,6 +17,9 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? IncludeHideout;
         public static ConfigEntry<bool>? CheckmarkOnNonFir;
         public static ConfigEntry<bool>? HoverItemTooltip;
+        public static ConfigEntry<bool>? SeparatedTooltip;
+        public static ConfigEntry<bool>? HideInHideoutRequirements;
+        public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<bool>? MarkEnoughItems;
         public static ConfigEntry<bool>? UseCustomQuestColor;
         public static ConfigEntry<bool>? BulletPoints;
@@ -105,6 +108,25 @@ namespace AllQuestsCheckmarks.Helpers
                 "Show tooltip when hovering the item",
                 true,
                 "Whether or not to also show the checkmark tooltip when hovering the item itself, not only the checkmark"
+            );
+
+            SeparatedTooltip = general.BindConfig(
+                "Separated tooltip layout",
+                true,
+                "Whether or not to use the layout: found in raid label (green), separator, stash and totals, separator, quests and hideout. " +
+                    "Off keeps the original single block"
+            );
+
+            HideInHideoutRequirements = general.BindConfig(
+                "Hide checkmarks on hideout requirement items",
+                true,
+                "Whether or not to hide the checkmark (and its tooltip) on the item icons of hideout upgrade requirements, where it only adds confusion"
+            );
+
+            CompactFirLabels = general.BindConfig(
+                "Small FiR labels",
+                true,
+                "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey"
             );
 
             /*

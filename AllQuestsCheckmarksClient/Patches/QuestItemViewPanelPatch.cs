@@ -23,11 +23,37 @@ namespace AllQuestsCheckmarks.Patches
             return AccessTools.Method(typeof(QuestItemViewPanel), nameof(QuestItemViewPanel.Show));
         }
 
+        // Item icons of hideout upgrade requirements are created with the Hideout view type
+        private static bool IsHideoutView(QuestItemViewPanel panel)
+        {
+            ItemView? view = panel.GetComponentInParent<ItemView>();
+            return view?.ItemContext is not null && view.ItemContext.ViewType == EItemViewType.Hideout;
+        }
+
+        private static string FirLabel(bool fir)
+        {
+            string text = (fir ? "aqc_fir" : "aqc_nonfir").Localized(null);
+
+            if (!Settings.CompactFirLabels!.Value)
+            {
+                return text;
+            }
+
+            return fir ? $"<size=80%><color=#FFFF66>{text}</color></size>" : $"<size=80%><color=#8A8A8A>{text}</color></size>";
+        }
+
         [PatchPrefix]
         static bool Prefix(Profile profile, Item item, [CanBeNull] SimpleTooltip tooltip, QuestItemViewPanel __instance, Image ____questIconImage,
             Sprite ____foundInRaidSprite, Sprite ____questItemSprite, ref string ____tooltipText, ref SimpleTooltip ____tooltip, TextMeshProUGUI ____questItemLabel)
         {
             __instance.HideGameObject();
+
+            if (Settings.HideInHideoutRequirements!.Value && IsHideoutView(__instance))
+            {
+                ____tooltip = null;
+                ____tooltipText = "";
+                return false;
+            }
 
             if (____questItemLabel != null)
             {
@@ -41,14 +67,19 @@ namespace AllQuestsCheckmarks.Patches
             ____tooltip = tooltip;
             ____tooltipText = "";
 
+            bool separated = Settings.SeparatedTooltip!.Value;
+            string foundInRaidLine = "";
+
             if (item.MarkedAsSpawnedInSession)
             {
-                ____tooltipText = "Item found in raid".Localized(null) + "\n";
+                foundInRaidLine = separated
+                    ? "<b><color=#66FF66>" + "Item found in raid".Localized(null) + "</color></b>"
+                    : "Item found in raid".Localized(null);
             }
 
             bool showNonFir = Settings.IncludeNonFir!.Value;
             StashHelper.ItemsCount inStash = StashHelper.GetItemsInStash(item.TemplateId);
-            ____tooltipText += string.Format("aqc_in_stash".Localized(null), inStash.Total, inStash.Fir);
+            string stashLine = string.Format("aqc_in_stash".Localized(null), inStash.Total, inStash.Fir);
 
             bool neededForActive = false;
             bool neededForFuture = false;
@@ -109,7 +140,7 @@ namespace AllQuestsCheckmarks.Patches
 
                         if (showNonFir)
                         {
-                            activeQuestsTooltip += " " + (condition.onlyFoundInRaid ? "aqc_fir" : "aqc_nonfir").Localized(null);
+                            activeQuestsTooltip += " " + FirLabel(condition.onlyFoundInRaid);
                         }
                     }
                     else
@@ -175,7 +206,7 @@ namespace AllQuestsCheckmarks.Patches
 
                     if (showNonFir)
                     {
-                        futureQuestsTooltip += " " + (quest.Value.Count.Fir ? "aqc_fir" : "aqc_nonfir").Localized(null);
+                        futureQuestsTooltip += " " + FirLabel(quest.Value.Count.Fir);
                     }
                 }
             }
@@ -226,7 +257,7 @@ namespace AllQuestsCheckmarks.Patches
                             }
 
                             hideoutTooltip += $"\n{indent}<color={hideoutColor}>{hideout.Area[i]} lvl {hideout.Level[i]}</color>: {hideout.Quantity[i]} "
-                                + (hideout.Fir[i] ? "aqc_fir" : "aqc_nonfir").Localized(null);
+                                + FirLabel(hideout.Fir[i]);
                         }
                     }
 
@@ -240,30 +271,54 @@ namespace AllQuestsCheckmarks.Patches
             // hideout non-FiR needs must show in the total even when non-FiR quests are off
             bool showNonFirTotal = showNonFir || neededForHideout && hideoutNonFir > 0;
 
+            string notFirLine = "";
             if (Settings.CheckmarkOnNonFir!.Value && !item.MarkedAsSpawnedInSession && totalNeededFir > 0)
             {
-                ____tooltipText += "\n" + "aqc_copy_not_fir".Localized(null);
+                notFirLine = "aqc_copy_not_fir".Localized(null);
             }
 
+            string totalLine = "";
             if (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0)
             {
-                ____tooltipText += "\n" + string.Format((showNonFirTotal ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
+                totalLine = string.Format((showNonFirTotal ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
                        totalNeededFir, totalNeededNonFir);
             }
 
-            ____tooltipText += activeQuestsTooltip + futureQuestsTooltip + hideoutTooltip;
+            // every section starts with a line break
+            string sections = activeQuestsTooltip + futureQuestsTooltip + hideoutTooltip;
 
             if (Plugin.isFikaInstalled && Settings.SquadQuests!.Value && SquadQuests.IsNeededForSquadMembers(item, out List<string> members))
             {
                 string squadColor = Settings.SquadQuestTextColor!.GetHexColor(!useCustomTextColors);
 
                 neededForFriend = true;
-                ____tooltipText += "\n" + "aqc_squad_quests".Localized(null);
+                sections += "\n" + "aqc_squad_quests".Localized(null);
 
                 foreach (string nick in members)
                 {
-                    ____tooltipText += $"\n{indent}<color={squadColor}>{nick}</color>";
+                    sections += $"\n{indent}<color={squadColor}>{nick}</color>";
                 }
+            }
+
+            if (separated)
+            {
+                // label (found in raid, or this copy is not FiR), separator, stash and totals, separator, quests and hideout
+                string label = foundInRaidLine.Length > 0 ? foundInRaidLine : notFirLine;
+
+                ____tooltipText = label.Length > 0 ? label + "\n" + TooltipSeparator.Line + "\n" : "";
+                ____tooltipText += stashLine + (totalLine.Length > 0 ? "\n" + totalLine : "");
+
+                if (sections.Length > 0)
+                {
+                    ____tooltipText += "\n" + TooltipSeparator.Line + sections;
+                }
+            }
+            else
+            {
+                ____tooltipText = (foundInRaidLine.Length > 0 ? foundInRaidLine + "\n" : "") + stashLine
+                    + (notFirLine.Length > 0 ? "\n" + notFirLine : "")
+                    + (totalLine.Length > 0 ? "\n" + totalLine : "")
+                    + sections;
             }
 
             int leftFir = inStash.Fir - totalNeededFir;
