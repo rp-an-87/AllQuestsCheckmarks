@@ -379,6 +379,12 @@ namespace AllQuestsCheckmarks.Helpers
                     need.BuyBy[i] = buyable ? nonFirMissing[i] : 0;
                 }
 
+                if (!Settings.BuyFutureNeeds!.Value)
+                {
+                    need.BuyBy[QuestLater] = 0;
+                    need.BuyBy[HideoutLater] = 0;
+                }
+
                 need.Loot = Strength(need.LootBy);
                 need.Buy = Strength(need.BuyBy);
 
