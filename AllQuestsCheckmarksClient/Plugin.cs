@@ -57,6 +57,22 @@ namespace AllQuestsCheckmarks
             LogSource.LogInfo($"AllQuestCheckmarks by ZGFueDkx version {Info.Metadata.Version} started");
         }
 
+        private static float _lastSlowLog = -10f;
+
+        // Slow paths are reported as warnings so they show in LogOutput.log without any setting; at most one every half second
+        public static void LogSlow(string msg)
+        {
+            float now = UnityEngine.Time.realtimeSinceStartup;
+
+            if (now - _lastSlowLog < 0.5f)
+            {
+                return;
+            }
+
+            _lastSlowLog = now;
+            LogSource?.LogWarning("[slow] " + msg);
+        }
+
         public static void LogDebug(string msg)
         {
             if (Settings.ShowDebug!.Value)

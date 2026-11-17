@@ -50,6 +50,7 @@ namespace AllQuestsCheckmarks.Patches
         private static bool _applying;
         private static bool _pumping;
         private static bool _refreshQueued;
+        private static int _eventsSinceRefresh;
         private static int _appliedVersion = -1;
         private static Sprite? _frameSprite;
 
@@ -115,6 +116,7 @@ namespace AllQuestsCheckmarks.Patches
         // Debounced, so a burst of events costs one rebuild.
         public static void OnInventoryChanged()
         {
+            _eventsSinceRefresh++;
             NeedsSnapshot.Invalidate();
 
             if (_refreshQueued || Plugin.Instance == null)
@@ -130,6 +132,13 @@ namespace AllQuestsCheckmarks.Patches
         {
             yield return new WaitForSeconds(0.3f);
             _refreshQueued = false;
+
+            if (_eventsSinceRefresh > 30)
+            {
+                Plugin.LogSlow($"{_eventsSinceRefresh} inventory events in 0.3 s");
+            }
+
+            _eventsSinceRefresh = 0;
 
             // rebuild first; redraw only if the result is different from what the views already show
             NeedsSnapshot.Refresh();

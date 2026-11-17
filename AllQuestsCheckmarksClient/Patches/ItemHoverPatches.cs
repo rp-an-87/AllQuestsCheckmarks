@@ -137,7 +137,7 @@ namespace AllQuestsCheckmarks.Patches
 
             if (watch.ElapsedMilliseconds >= 3)
             {
-                Plugin.LogDebug($"Slow hover tooltip: {watch.ElapsedMilliseconds} ms for {item.Item?.TemplateId}");
+                Plugin.LogSlow($"hover tooltip: {watch.ElapsedMilliseconds} ms for {item.Item?.TemplateId}");
             }
         }
 
@@ -179,6 +179,17 @@ namespace AllQuestsCheckmarks.Patches
         }
 
         public static void OnTooltipShow(ref string text)
+        {
+            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+            TooltipShow(ref text);
+
+            if (watch.ElapsedMilliseconds >= 3)
+            {
+                Plugin.LogSlow($"tooltip text: {watch.ElapsedMilliseconds} ms");
+            }
+        }
+
+        private static void TooltipShow(ref string text)
         {
             if (_fromCheckmark)
             {

@@ -408,6 +408,11 @@ namespace AllQuestsCheckmarks.Helpers
                 Version++;
             }
 
+            if (watch.ElapsedMilliseconds >= 8)
+            {
+                Plugin.LogSlow($"needs snapshot: {watch.ElapsedMilliseconds} ms, {_needs.Count} items, {pools.Count} quest conditions");
+            }
+
             Plugin.LogDebug($"Needs snapshot built in {watch.ElapsedMilliseconds} ms (in raid: {inRaid}): {_needs.Count} items, {pools.Count} quest conditions, changed: {Version}");
         }
 

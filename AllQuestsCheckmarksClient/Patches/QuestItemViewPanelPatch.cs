@@ -60,7 +60,7 @@ namespace AllQuestsCheckmarks.Patches
 
             if (watch.ElapsedMilliseconds >= 3)
             {
-                Plugin.LogDebug($"Slow checkmark panel build: {watch.ElapsedMilliseconds} ms for {item.TemplateId}");
+                Plugin.LogSlow($"checkmark panel build: {watch.ElapsedMilliseconds} ms for {item.TemplateId}");
             }
 
             return result;
