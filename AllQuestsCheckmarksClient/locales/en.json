@@ -7,6 +7,7 @@
 	"aqc_fir": "FiR",
 	"aqc_nonfir": "Non-FiR",
 	"aqc_squad_quests": "Required for squad:",
+	"aqc_copy_not_fir": "<color=#FF9933>This copy is not FiR</color>",
 	"aqc_hideout": "Hideout upgrades:",
 	"aqc_hideout_future": "Future hideout upgrades:",
 	"aqc_barters": "Barters:",

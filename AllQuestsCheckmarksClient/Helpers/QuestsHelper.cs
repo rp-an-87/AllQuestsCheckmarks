@@ -57,7 +57,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static bool IsNeededForActiveOrFutureQuests(Item item, out QuestsData.ItemData quests)
         {
             return QuestsData.QuestItemsByItemId.TryGetValue(item.TemplateId, out quests) &&
-                   (item.MarkedAsSpawnedInSession && quests.Total > 0 || quests.NonFir > 0);
+                   (Settings.CheckmarkOnNonFir!.Value && quests.Total > 0 || item.MarkedAsSpawnedInSession && quests.Total > 0 || quests.NonFir > 0);
         }
 
         public static bool GetActiveQuestsWithItem(Profile profile, Item item, out Dictionary<MongoID, CurrentQuest> activeQuests,
@@ -133,7 +133,7 @@ namespace AllQuestsCheckmarks.Helpers
 
             if (item is not Weapon weapon)
             {
-                return activeNonFir || item.MarkedAsSpawnedInSession;
+                return activeNonFir || item.MarkedAsSpawnedInSession || Settings.CheckmarkOnNonFir!.Value;
             }
 
             foreach (KeyValuePair<MongoID, CurrentQuest> quest in new Dictionary<MongoID, CurrentQuest>(activeQuests))
@@ -151,7 +151,7 @@ namespace AllQuestsCheckmarks.Helpers
                 activeQuests.Remove(quest.Key);
             }
 
-            return activeNonFir || item.MarkedAsSpawnedInSession;
+            return activeNonFir || item.MarkedAsSpawnedInSession || Settings.CheckmarkOnNonFir!.Value;
         }
 
         public static ECheckmarkStatus GetCheckmarkStatus(bool active, bool future, bool squad, bool fir, bool enough, bool collector)

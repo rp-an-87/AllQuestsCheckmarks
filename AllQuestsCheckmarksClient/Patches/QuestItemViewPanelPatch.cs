@@ -200,7 +200,7 @@ namespace AllQuestsCheckmarks.Patches
                     }
                 }
 
-                if (item.MarkedAsSpawnedInSession && hideoutFir + hideoutNonFir > 0 || hideoutNonFir > 0)
+                if ((item.MarkedAsSpawnedInSession || Settings.CheckmarkOnNonFir!.Value) && hideoutFir + hideoutNonFir > 0 || hideoutNonFir > 0)
                 {
                     neededForHideout = true;
                     collectorOnly = false;
@@ -239,6 +239,11 @@ namespace AllQuestsCheckmarks.Patches
 
             // hideout non-FiR needs must show in the total even when non-FiR quests are off
             bool showNonFirTotal = showNonFir || neededForHideout && hideoutNonFir > 0;
+
+            if (!item.MarkedAsSpawnedInSession && totalNeededFir > 0)
+            {
+                ____tooltipText += "\n" + "aqc_copy_not_fir".Localized(null);
+            }
 
             if (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0)
             {

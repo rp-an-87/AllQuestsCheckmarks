@@ -15,6 +15,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? IncludeRaidItems;
         public static ConfigEntry<bool>? SquadQuests;
         public static ConfigEntry<bool>? IncludeHideout;
+        public static ConfigEntry<bool>? CheckmarkOnNonFir;
         public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? MarkEnoughItems;
         public static ConfigEntry<bool>? UseCustomQuestColor;
@@ -91,6 +92,13 @@ namespace AllQuestsCheckmarks.Helpers
                 true,
                 "Whether or not to add hideout upgrade requirements (FiR and non-FiR) to the tooltip and to 'Total needed'. " +
                     "Needs the Wishlist Extended fork; has no effect without it"
+            );
+
+            CheckmarkOnNonFir = general.BindConfig(
+                "Show checkmark on non-FiR items that are needed FiR",
+                true,
+                "Whether or not non-FiR items get a checkmark and tooltip when quests or hideout upgrades only accept FiR items. " +
+                    "The tooltip says the copy is not FiR; non-FiR color is used for future needs"
             );
 
             HoverItemTooltip = general.BindConfig(
