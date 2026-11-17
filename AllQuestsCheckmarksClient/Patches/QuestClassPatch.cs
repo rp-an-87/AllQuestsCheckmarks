@@ -29,6 +29,7 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             Plugin.LogDebug($"Quest {__instance.Template.Name} status changed from {__state} to {__instance.QuestStatus}");
+            NeedsSnapshot.Invalidate();
 
             switch (__instance.QuestStatus)
             {

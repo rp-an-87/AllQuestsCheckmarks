@@ -18,6 +18,9 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? CheckmarkOnNonFir;
         public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? SeparatedTooltip;
+        public static ConfigEntry<bool>? UseOverlays;
+        public static ConfigEntry<bool>? ClassicCheckmarks;
+        public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<bool>? MarkEnoughItems;
@@ -128,6 +131,27 @@ namespace AllQuestsCheckmarks.Helpers
                 "Small FiR labels",
                 true,
                 "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey"
+            );
+
+            UseOverlays = general.BindConfig(
+                "Need overlays",
+                true,
+                "Whether or not items you have to act on get an outline overlay: in raid what you have to loot (or the Collector items you lack), " +
+                    "out of raid what you can hand in (gold) and what you still have to buy. Strong when needed now, weaker when needed later"
+            );
+
+            OverlayLaterStrength = general.BindConfig(
+                "Overlay strength for later needs",
+                0.5f,
+                "How strong the overlay is for items needed only for future quests or hideout upgrades (1 = same as needed now)",
+                acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
+            );
+
+            ClassicCheckmarks = general.BindConfig(
+                "Classic colored checkmarks",
+                false,
+                "Whether or not to keep the colored checkmark statuses (quest, future, hideout, collector, enough...). " +
+                    "Off: the checkmark is only the grey found in raid marker and the overlays show what you need"
             );
 
             /*

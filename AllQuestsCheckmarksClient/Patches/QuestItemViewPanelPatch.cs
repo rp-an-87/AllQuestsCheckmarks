@@ -343,6 +343,17 @@ namespace AllQuestsCheckmarks.Patches
                 return false;
             }
 
+            // overlays replace the colored statuses: the checkmark is only the grey found in raid marker
+            if (!Settings.ClassicCheckmarks!.Value)
+            {
+                if (item.MarkedAsSpawnedInSession)
+                {
+                    QuestsHelper.SetCheckmark(__instance, ____questIconImage, ____foundInRaidSprite, QuestsHelper.DEFAULT_COLOR);
+                }
+
+                return false;
+            }
+
             switch (status)
             {
                 case QuestsHelper.ECheckmarkStatus.Fir:

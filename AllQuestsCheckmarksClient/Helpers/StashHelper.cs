@@ -20,6 +20,9 @@ namespace AllQuestsCheckmarks.Helpers
 
         private static readonly Dictionary<MongoID, ItemsCount> _itemsCache = [];
 
+        // Stash contents cached when a raid starts (the stash can't change during a raid)
+        public static IReadOnlyDictionary<MongoID, ItemsCount> RaidStashCache => _itemsCache;
+
         public class ItemsCount
         {
             public int Fir;
@@ -66,6 +69,60 @@ namespace AllQuestsCheckmarks.Helpers
             }
 
             return itemsCount;
+        }
+
+        // GetItemsInStash for every item type at once
+        public static Dictionary<MongoID, ItemsCount> CountAll()
+        {
+            Dictionary<MongoID, ItemsCount> result = [];
+            Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
+
+            void Add(MongoID id, int fir, int nonFir)
+            {
+                if (!result.TryGetValue(id, out ItemsCount count))
+                {
+                    count = new ItemsCount();
+                    result.Add(id, count);
+                }
+
+                count.Fir += fir;
+                count.NonFir += nonFir;
+            }
+
+            IEnumerable<Item> items;
+
+            if (RaidUtils.IsInRaid())
+            {
+                foreach (KeyValuePair<MongoID, ItemsCount> cached in _itemsCache)
+                {
+                    Add(cached.Key, cached.Value.Fir, cached.Value.NonFir);
+                }
+
+                if (!Settings.IncludeRaidItems!.Value)
+                {
+                    return result;
+                }
+
+                items = profile.Inventory.GetPlayerItems(EPlayerItems.Equipment | EPlayerItems.QuestItems);
+            }
+            else
+            {
+                items = profile.Inventory.GetPlayerItems();
+            }
+
+            foreach (Item item in items)
+            {
+                if (item.MarkedAsSpawnedInSession)
+                {
+                    Add(item.TemplateId, item.StackObjectsCount, 0);
+                }
+                else
+                {
+                    Add(item.TemplateId, 0, item.StackObjectsCount);
+                }
+            }
+
+            return result;
         }
 
         public static void BuildItemsCache()

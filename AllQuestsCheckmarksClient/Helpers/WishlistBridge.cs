@@ -14,8 +14,32 @@ namespace AllQuestsCheckmarks.Helpers
 
         private delegate bool TryGetNeedsDelegate(string templateId, out int[] quantity, out bool[] fir, out bool[] future, out string[] area, out int[] level);
 
+        private delegate bool TryGetAllNeedsDelegate(out string[] itemId, out int[] quantity, out bool[] fir, out bool[] future);
+
         private static bool _resolved;
         private static TryGetNeedsDelegate? _tryGetNeeds;
+        private static TryGetAllNeedsDelegate? _tryGetAllNeeds;
+
+        /// <summary>Every remaining hideout item requirement (parallel arrays), or false without the Wishlist Extended fork.</summary>
+        public static bool TryGetAllHideoutNeeds(out string[] itemId, out int[] quantity, out bool[] fir, out bool[] future)
+        {
+            itemId = [];
+            quantity = [];
+            fir = [];
+            future = [];
+            Resolve();
+
+            try
+            {
+                return _tryGetAllNeeds is not null && _tryGetAllNeeds(out itemId, out quantity, out fir, out future);
+            }
+            catch (Exception e)
+            {
+                Plugin.LogSource?.LogError($"Wishlist Extended bulk hideout lookup failed, disabling it: {e}");
+                _tryGetAllNeeds = null;
+                return false;
+            }
+        }
 
         public class HideoutNeeds
         {
@@ -81,6 +105,12 @@ namespace AllQuestsCheckmarks.Helpers
             }
 
             _tryGetNeeds = (TryGetNeedsDelegate)Delegate.CreateDelegate(typeof(TryGetNeedsDelegate), method);
+
+            MethodInfo? all = api?.GetMethod("TryGetAllHideoutNeeds", BindingFlags.Public | BindingFlags.Static);
+            if (all is not null)
+            {
+                _tryGetAllNeeds = (TryGetAllNeedsDelegate)Delegate.CreateDelegate(typeof(TryGetAllNeedsDelegate), all);
+            }
             Plugin.LogSource?.LogInfo("Wishlist Extended hideout API found");
         }
     }

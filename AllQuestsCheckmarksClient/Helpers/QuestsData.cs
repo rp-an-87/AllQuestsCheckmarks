@@ -30,6 +30,15 @@ namespace AllQuestsCheckmarks.Helpers
             public Dictionary<MongoID, QuestValues> Quests = [];
         }
 
+        // One quest condition: any of Targets, Count in total (several item types share one count)
+        public class QuestPool(MongoID questId, List<MongoID> targets, int count, bool fir)
+        {
+            public MongoID QuestId = questId;
+            public List<MongoID> Targets = targets;
+            public int Count = count;
+            public bool Fir = fir;
+        }
+
         public class QuestRequirements(MongoID questId)
         {
             public MongoID QuestId = questId;
@@ -39,6 +48,7 @@ namespace AllQuestsCheckmarks.Helpers
         private static List<QuestJson>? _questsData;
         private static readonly List<MongoID> _unreachableQuests = [];
 
+        public static readonly List<QuestPool> Pools = [];
         public static Dictionary<MongoID, ItemData> QuestItemsByItemId = [];
         public static Dictionary<MongoID, Dictionary<MongoID, QuestItems>> QuestItemsByQuestId = [];
 
@@ -60,6 +70,7 @@ namespace AllQuestsCheckmarks.Helpers
 
             CheckUnreachableQuests();
             ParseData();
+            NeedsSnapshot.Invalidate();
         }
 
         private static void CheckUnreachableQuests()
@@ -220,6 +231,7 @@ namespace AllQuestsCheckmarks.Helpers
 
             QuestItemsByItemId.Clear();
             QuestItemsByQuestId.Clear();
+            Pools.Clear();
 
             for (int i = 0; i < _questsData!.Count; ++i)
             {
@@ -295,6 +307,8 @@ namespace AllQuestsCheckmarks.Helpers
                         continue;
                     }
 
+                    AddPool(questId, targets, count, fir);
+
                     foreach (MongoID itemId in targets)
                     {
                         if (conditionType != "HandoverItem" && QuestsHelper.SPECIAL_BLACKLIST.Contains(itemId))
@@ -312,6 +326,24 @@ namespace AllQuestsCheckmarks.Helpers
                     }
                 }
             }
+        }
+
+        private static void AddPool(MongoID questId, List<MongoID> targets, int count, bool fir)
+        {
+            List<MongoID> usable = [.. targets.Where(t => !QuestsHelper.SPECIAL_BLACKLIST.Contains(t))];
+
+            if (usable.Count == 0 || count <= 0)
+            {
+                return;
+            }
+
+            // FindItem and HandoverItem of the same items are one need
+            if (Pools.Any(p => p.QuestId == questId && p.Fir == fir && p.Count == count && p.Targets.Count == usable.Count && !p.Targets.Except(usable).Any()))
+            {
+                return;
+            }
+
+            Pools.Add(new QuestPool(questId, usable, count, fir));
         }
 
         private static bool HasItemInFindOrHandover(MongoID itemId, List<AvailableForFinishCondition> conditions)
@@ -449,6 +481,8 @@ namespace AllQuestsCheckmarks.Helpers
             }
 
             QuestItemsByQuestId.Remove(questId);
+            Pools.RemoveAll(p => p.QuestId == questId);
+            NeedsSnapshot.Invalidate();
         }
     }
 }
