@@ -66,7 +66,7 @@ namespace AllQuestsCheckmarks.Patches
             if (item.MarkedAsSpawnedInSession)
             {
                 foundInRaidLine = separated
-                    ? "<b><color=#66FF66>" + "Item found in raid".Localized(null) + "</color></b>"
+                    ? "<size=" + (Settings.CompactFirLabels!.Value ? "80" : "100") + "%><color=#66FF66>" + "Item found in raid".Localized(null) + "</color></size>"
                     : "Item found in raid".Localized(null);
             }
 
@@ -268,6 +268,11 @@ namespace AllQuestsCheckmarks.Patches
             if (Settings.CheckmarkOnNonFir!.Value && !item.MarkedAsSpawnedInSession && totalNeededFir > 0)
             {
                 notFirLine = "aqc_copy_not_fir".Localized(null);
+
+                if (Settings.CompactFirLabels!.Value)
+                {
+                    notFirLine = "<size=80%>" + notFirLine + "</size>";
+                }
             }
 
             string totalLine = "";
