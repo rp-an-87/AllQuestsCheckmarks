@@ -96,6 +96,21 @@ namespace AllQuestsCheckmarks.Helpers
             public bool Collector = collector;
         }
 
+        // One quest condition or hideout requirement, with what is given to it when the copies you hold are shared out
+        private class NeedRec
+        {
+            public int Source;
+            public bool Fir;
+            public bool Collector;
+            public bool Hideout;
+            public int Remaining;
+            public int FullCount;
+            public int Missing;
+            public MongoID QuestId;
+            public List<MongoID> Targets = [];
+            public readonly Dictionary<MongoID, int> Given = [];
+        }
+
         private static readonly Dictionary<MongoID, ItemNeed> _needs = [];
         private static readonly Dictionary<MongoID, List<PoolInfo>> _pools = [];
         private static readonly Dictionary<MongoID, bool> _buyable = [];
@@ -275,6 +290,10 @@ namespace AllQuestsCheckmarks.Helpers
                 pools.Add(new Pool(pool.QuestId, [.. pool.Targets.Distinct()], pool.Count, pool.Count, pool.Fir, false, pool.QuestId == QuestsHelper.COLLECTOR_ID));
             }
 
+            // Every need as one record, so the copies you hold can be shared out between all of them in one go:
+            // what a hand in uses up is no longer there for the next quest or upgrade
+            List<NeedRec> needs = [];
+
             foreach (Pool pool in pools)
             {
                 if (pool.Targets.Count > 1 && !Settings.SharedConditions!.Value)
@@ -282,58 +301,16 @@ namespace AllQuestsCheckmarks.Helpers
                     continue;
                 }
 
-                int heldByPool = pool.Targets.Sum(t => held.TryGetValue(t, out StashHelper.ItemsCount c) ? (pool.Fir ? c.Fir : c.Total) : 0);
-                bool shared = pool.Targets.Count > 1;
-                int sourceIndex = pool.Now ? QuestNow : QuestLater;
-
-                foreach (MongoID target in pool.Targets)
+                needs.Add(new NeedRec
                 {
-                    Acc acc = AccFor(target);
-                    acc.Quest = true;
-                    held.TryGetValue(target, out StashHelper.ItemsCount own);
-
-                    if (pool.Now && heldByPool > 0 && own is not null && (pool.Fir ? own.Fir : own.Total) > 0)
-                    {
-                        acc.HandIn = true;
-                        acc.HandInAnyCopy |= !pool.Fir;
-                        acc.HandInCount += Math.Min(pool.Remaining, shared ? heldByPool : (pool.Fir ? own.Fir : own.Total));
-                    }
-
-                    if (pool.Collector)
-                    {
-                        acc.Collector = true;
-                    }
-
-                    if (!shared)
-                    {
-                        // a single item: allocated with the other needs of that item below
-                        (pool.Fir ? acc.FirDemand : acc.NonFirDemand)[sourceIndex] += pool.Remaining;
-                        continue;
-                    }
-
-                    // several items share the count: short until the sum of what you hold reaches it
-                    if (heldByPool < pool.Remaining)
-                    {
-                        (pool.Fir ? acc.PoolFirShort : acc.PoolNonFirShort)[sourceIndex] += pool.Remaining - heldByPool;
-                    }
-
-                    if (!_pools.TryGetValue(target, out List<PoolInfo> list))
-                    {
-                        list = [];
-                        _pools.Add(target, list);
-                    }
-
-                    list.Add(new PoolInfo
-                    {
-                        QuestId = pool.QuestId,
-                        TargetCount = pool.Targets.Count,
-                        Held = heldByPool,
-                        Remaining = pool.Remaining,
-                        FullCount = pool.FullCount,
-                        Fir = pool.Fir,
-                        Now = pool.Now,
-                    });
-                }
+                    Source = pool.Now ? QuestNow : QuestLater,
+                    Fir = pool.Fir,
+                    Remaining = pool.Remaining,
+                    Targets = pool.Targets,
+                    Collector = pool.Collector,
+                    QuestId = pool.QuestId,
+                    FullCount = pool.FullCount,
+                });
             }
 
             // hideout upgrades: from the Wishlist Extended fork
@@ -342,51 +319,161 @@ namespace AllQuestsCheckmarks.Helpers
             {
                 for (int i = 0; i < hItems.Length; i++)
                 {
-                    Acc acc = AccFor(new MongoID(hItems[i]));
-                    acc.Hideout = true;
-                    (hFir[i] ? acc.FirDemand : acc.NonFirDemand)[hFuture[i] ? HideoutLater : HideoutNow] += hQty[i];
+                    needs.Add(new NeedRec
+                    {
+                        Source = hFuture[i] ? HideoutLater : HideoutNow,
+                        Fir = hFir[i],
+                        Remaining = hQty[i],
+                        Targets = [new MongoID(hItems[i])],
+                        Hideout = true,
+                    });
                 }
             }
 
-            foreach (KeyValuePair<MongoID, Acc> entry in accs)
+            // how many needs want each item: for a shared need the items few others want are used first
+            Dictionary<MongoID, int> contest = [];
+            foreach (NeedRec need in needs)
             {
-                MongoID id = entry.Key;
-                Acc acc = entry.Value;
-
-                held.TryGetValue(id, out StashHelper.ItemsCount own);
-                int heldFir = own?.Fir ?? 0;
-                int heldNonFir = own?.NonFir ?? 0;
-
-                // FiR copies fill FiR needs first; what is left over, with the non-FiR copies, fills the non-FiR needs.
-                // Within a kind the needs are filled in the order of the sources, so what stays missing is the later needs
-                int[] firMissing = Unmet(acc.FirDemand, heldFir, out int spareFir);
-                int[] nonFirMissing = Unmet(acc.NonFirDemand, heldNonFir + spareFir, out _);
-
-                for (int i = 0; i < Sources; i++)
+                foreach (MongoID target in need.Targets)
                 {
-                    firMissing[i] += acc.PoolFirShort[i];
-                    nonFirMissing[i] += acc.PoolNonFirShort[i];
+                    contest[target] = contest.TryGetValue(target, out int n) ? n + 1 : 1;
+                }
+            }
+
+            // copies left to share out: [0] found in raid, [1] not
+            Dictionary<MongoID, int[]> stock = [];
+            foreach (KeyValuePair<MongoID, StashHelper.ItemsCount> entry in held)
+            {
+                stock[entry.Key] = [entry.Value.Fir, entry.Value.NonFir];
+            }
+
+            // current needs before later ones, found in raid needs before the ones that take any copy, narrow needs before wide ones
+            needs.Sort((a, b) =>
+            {
+                int c = a.Source.CompareTo(b.Source);
+                if (c != 0) return c;
+                c = b.Fir.CompareTo(a.Fir);
+                return c != 0 ? c : a.Targets.Count.CompareTo(b.Targets.Count);
+            });
+
+            foreach (NeedRec need in needs)
+            {
+                int missing = need.Remaining;
+
+                foreach (MongoID target in need.Targets.OrderBy(t => contest[t]).ThenByDescending(t => stock.TryGetValue(t, out int[] s) ? s[0] + s[1] : 0))
+                {
+                    if (missing <= 0 || !stock.TryGetValue(target, out int[] copies))
+                    {
+                        continue;
+                    }
+
+                    int take;
+
+                    if (need.Fir)
+                    {
+                        take = Math.Min(missing, copies[0]);
+                        copies[0] -= take;
+                    }
+                    else
+                    {
+                        // keep the found in raid copies for the needs that require them
+                        take = Math.Min(missing, copies[1]);
+                        copies[1] -= take;
+                        int more = Math.Min(missing - take, copies[0]);
+                        copies[0] -= more;
+                        take += more;
+                    }
+
+                    if (take > 0)
+                    {
+                        need.Given[target] = take;
+                        missing -= take;
+                    }
                 }
 
-                bool buyable = IsBuyable(id);
+                need.Missing = missing;
+            }
 
-                ItemNeed need = new()
+            // what that means for each item
+            Dictionary<MongoID, ItemNeed> items = [];
+            HashSet<MongoID> collectorItems = [];
+
+            foreach (NeedRec need in needs)
+            {
+                bool shared = need.Targets.Count > 1;
+                int heldByPool = shared ? need.Targets.Sum(t => held.TryGetValue(t, out StashHelper.ItemsCount c) ? (need.Fir ? c.Fir : c.Total) : 0) : 0;
+
+                foreach (MongoID target in need.Targets)
                 {
-                    HandIn = acc.HandIn,
-                    HandInAnyCopy = acc.HandInAnyCopy,
-                    CollectorMissing = acc.Collector && heldFir < 1,
-                    FromQuest = acc.Quest,
-                    FromHideout = acc.Hideout,
-                    HandInCount = acc.HandInCount,
-                };
+                    if (!items.TryGetValue(target, out ItemNeed item))
+                    {
+                        item = new ItemNeed();
+                        items.Add(target, item);
+                    }
+
+                    item.FromQuest |= !need.Hideout;
+                    item.FromHideout |= need.Hideout;
+
+                    if (need.Collector)
+                    {
+                        collectorItems.Add(target);
+                    }
+
+                    if (need.Missing > 0)
+                    {
+                        if (need.Fir)
+                        {
+                            item.FirBy[need.Source] += need.Missing;
+                        }
+                        else if (IsBuyable(target))
+                        {
+                            item.BuyBy[need.Source] += need.Missing;
+                        }
+                        else
+                        {
+                            item.UnbuyableBy[need.Source] += need.Missing;
+                        }
+                    }
+
+                    // copies of this item that go to a quest you have started: what you can hand in
+                    if (need.Source == QuestNow && need.Given.TryGetValue(target, out int given) && given > 0)
+                    {
+                        item.HandIn = true;
+                        item.HandInCount += given;
+                        item.HandInAnyCopy |= !need.Fir;
+                    }
+
+                    if (shared)
+                    {
+                        if (!_pools.TryGetValue(target, out List<PoolInfo> list))
+                        {
+                            list = [];
+                            _pools.Add(target, list);
+                        }
+
+                        list.Add(new PoolInfo
+                        {
+                            QuestId = need.QuestId,
+                            TargetCount = need.Targets.Count,
+                            Held = heldByPool,
+                            Remaining = need.Remaining,
+                            FullCount = need.FullCount,
+                            Fir = need.Fir,
+                            Now = need.Source == QuestNow,
+                        });
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<MongoID, ItemNeed> entry in items)
+            {
+                ItemNeed need = entry.Value;
+                held.TryGetValue(entry.Key, out StashHelper.ItemsCount own);
+                need.CollectorMissing = collectorItems.Contains(entry.Key) && (own?.Fir ?? 0) < 1;
 
                 for (int i = 0; i < Sources; i++)
                 {
-                    // in raid: loot it when FiR copies are short, or when it can't be bought; out of raid: buy it when it can be
-                    need.FirBy[i] = firMissing[i];
-                    need.UnbuyableBy[i] = buyable ? 0 : nonFirMissing[i];
                     need.LootBy[i] = need.FirBy[i] + need.UnbuyableBy[i];
-                    need.BuyBy[i] = buyable ? nonFirMissing[i] : 0;
                 }
 
                 need.Loot = Strength(need.LootBy);
@@ -403,7 +490,7 @@ namespace AllQuestsCheckmarks.Helpers
 
                 if (need.HandIn || need.CollectorMissing || need.LootBy.Any(n => n > 0) || need.BuyBy.Any(n => n > 0))
                 {
-                    _needs.Add(id, need);
+                    _needs.Add(entry.Key, need);
                 }
             }
 
