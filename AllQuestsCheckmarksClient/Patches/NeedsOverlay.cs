@@ -105,7 +105,7 @@ namespace AllQuestsCheckmarks.Patches
             float later = Settings.OverlayLaterStrength!.Value;
             NeedsSnapshot.EStrength kind;
 
-            if (RaidUtils.IsInRaid())
+            if (NeedsSnapshot.InRaid)
             {
                 if (need.CollectorMissing)
                 {

@@ -64,6 +64,9 @@ namespace AllQuestsCheckmarks.Helpers
 
         public static void Invalidate() => _dirty = true;
 
+        // the real raid state, or the debug switch that stands in for it
+        public static bool InRaid => RaidUtils.IsInRaid() || Settings.DebugInRaid!.Value;
+
         public static bool TryGet(MongoID itemId, out ItemNeed need)
         {
             EnsureFresh();
@@ -72,7 +75,7 @@ namespace AllQuestsCheckmarks.Helpers
 
         private static void EnsureFresh()
         {
-            bool inRaid = RaidUtils.IsInRaid();
+            bool inRaid = InRaid;
 
             if (!_dirty && inRaid == _builtInRaid && Time.realtimeSinceStartup - _builtAt < MaxAge)
             {
@@ -106,7 +109,7 @@ namespace AllQuestsCheckmarks.Helpers
             _needs.Clear();
 
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
-            Dictionary<MongoID, StashHelper.ItemsCount> held = StashHelper.CountAll();
+            Dictionary<MongoID, StashHelper.ItemsCount> held = Settings.DebugEmptyStash!.Value ? [] : StashHelper.CountAll();
             Dictionary<MongoID, Acc> accs = [];
             List<Pool> pools = [];
 

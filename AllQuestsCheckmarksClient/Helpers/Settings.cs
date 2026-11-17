@@ -28,6 +28,8 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? BulletPoints;
         public static ConfigEntry<bool>? CustomTextColors;
         public static ConfigEntry<bool>? ShowDebug;
+        public static ConfigEntry<bool>? DebugInRaid;
+        public static ConfigEntry<bool>? DebugEmptyStash;
 
         public static ConfigEntry<Color>? CheckmarkColor;
         public static ConfigEntry<Color>? NonFirColor;
@@ -263,6 +265,19 @@ namespace AllQuestsCheckmarks.Helpers
                 "Enable debug logs in Player.log"
             );
 
+            DebugInRaid = debug.BindConfig(
+                "Pretend to be in raid",
+                false,
+                "Testing only: the need overlays behave as if a raid was running (loot and Collector overlays instead of hand-in and buy). " +
+                    "Counts what you hold from your real stash. Reopen the stash screen to see the change"
+            );
+
+            DebugEmptyStash = debug.BindConfig(
+                "Pretend the stash is empty",
+                false,
+                "Testing only: the need overlays ignore what you hold, so every item you may need shows its overlay. Reopen the stash screen to see the change"
+            );
+
             debug.BindButton(
                 "Reload quests data",
                 "Reload",
@@ -279,6 +294,8 @@ namespace AllQuestsCheckmarks.Helpers
 
         private static void SettingChanged(object sender, SettingChangedEventArgs args)
         {
+            NeedsSnapshot.Invalidate();
+
             switch (args.ChangedSetting.Definition.Key)
             {
                 case "Include Collector quest (Fence)":
