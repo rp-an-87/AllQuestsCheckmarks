@@ -4,7 +4,9 @@ using EFT.InventoryLogic;
 using EFT.UI.DragAndDrop;
 using HarmonyLib;
 using SPT.Reflection.Patching;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UI.DragAndDrop.ItemViews;
@@ -36,7 +38,9 @@ namespace AllQuestsCheckmarks.Patches
         }
 
         private static readonly ConditionalWeakTable<WishlistGridView, State> _states = new();
+        private static readonly HashSet<WishlistGridView> _views = [];
         private static bool _applying;
+        private static bool _refreshQueued;
 
         public static void EnablePatches()
         {
@@ -44,6 +48,38 @@ namespace AllQuestsCheckmarks.Patches
             new OverlayAddPatch().Enable();
             new OverlayRemovePatch().Enable();
             new OverlayGroupPatch().Enable();
+            new InventoryChangedPatch().Enable();
+        }
+
+        // Something in an inventory changed (bought, sold, moved, handed in): rebuild the snapshot and redraw the item views that are open.
+        // Debounced, so a burst of events costs one rebuild.
+        public static void OnInventoryChanged()
+        {
+            NeedsSnapshot.Invalidate();
+
+            if (_refreshQueued || Plugin.Instance == null)
+            {
+                return;
+            }
+
+            _refreshQueued = true;
+            Plugin.Instance.StartCoroutine(RefreshLater());
+        }
+
+        private static IEnumerator RefreshLater()
+        {
+            yield return new WaitForSeconds(0.2f);
+            _refreshQueued = false;
+
+            _views.RemoveWhere(v => v == null);
+
+            foreach (WishlistGridView view in _views.ToArray())
+            {
+                if (view != null && view.isActiveAndEnabled)
+                {
+                    Apply(view);
+                }
+            }
         }
 
         public static void OnExamined(WishlistGridView view, bool examined)
@@ -58,6 +94,8 @@ namespace AllQuestsCheckmarks.Patches
             {
                 return;
             }
+
+            _views.Add(view);
 
             _applying = true;
 
@@ -231,6 +269,21 @@ namespace AllQuestsCheckmarks.Patches
 
             // back to the native look (the real wishlist decides whether it shows)
             view.SetExamined(state.Examined);
+        }
+    }
+
+    // The same event Wishlist Extended uses to know the stash changed
+    internal class InventoryChangedPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return AccessTools.Method(typeof(ItemController), nameof(ItemController.SafeRefreshItemEvent));
+        }
+
+        [PatchPostfix]
+        private static void Postfix()
+        {
+            NeedsOverlay.OnInventoryChanged();
         }
     }
 

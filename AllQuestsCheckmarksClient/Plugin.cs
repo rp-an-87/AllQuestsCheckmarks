@@ -17,12 +17,14 @@ namespace AllQuestsCheckmarks
     public class Plugin : BaseUnityPlugin
     {
         public static ManualLogSource? LogSource;
+        internal static Plugin? Instance;
         public static bool isFikaInstalled = false;
         public static string? modPath;
 
         public void Awake()
         {
             LogSource = Logger;
+            Instance = this;
 
             modPath = Path.GetDirectoryName(Assembly.GetAssembly(typeof(Plugin)).Location);
             modPath.Replace("\\", "/");
