@@ -6,6 +6,14 @@ namespace AllQuestsCheckmarks.Helpers
 {
     internal static class Settings
     {
+        // How a part of the overlay (border, glow) is drawn
+        public enum EOverlayPart
+        {
+            Native,
+            Own,
+            Off,
+        }
+
         public static ConfigEntry<bool>? IncludeCollector;
         public static ConfigEntry<bool>? IncludeLoyaltyRegain;
         public static ConfigEntry<bool>? IncludeUnreachable;
@@ -25,7 +33,11 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
         public static ConfigEntry<int>? OverlayBorderThickness;
-        public static ConfigEntry<float>? OverlayGlowStrength;
+        public static ConfigEntry<EOverlayPart>? OverlayBorderStyle;
+        public static ConfigEntry<EOverlayPart>? OverlayGlowStyle;
+        public static ConfigEntry<float>? OverlayBorderMultiplier;
+        public static ConfigEntry<float>? OverlayGlowMultiplier;
+        public static ConfigEntry<bool>? OverlayTintNative;
         public static ConfigEntry<float>? OverlayFrameBudget;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
@@ -187,11 +199,41 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<int>(1, 4)
             );
 
-            OverlayGlowStrength = general.BindConfig(
-                "Overlay glow strength",
-                0.55f,
-                "How strong the soft glow along the inside of the item edge is (0 = no glow, 1 = full). The border and the icon are not affected",
-                acceptableValue: new AcceptableValueRange<float>(0f, 1f)
+            OverlayBorderStyle = general.BindConfig(
+                "Overlay border style",
+                EOverlayPart.Native,
+                "Native - the game's own wishlist border, colored and weakened or strengthened\n" +
+                    "Own - a thin border drawn by this mod (see 'Overlay border width')\n" +
+                    "Off - no border"
+            );
+
+            OverlayGlowStyle = general.BindConfig(
+                "Overlay glow style",
+                EOverlayPart.Native,
+                "Native - the game's own wishlist glow, colored and weakened or strengthened\n" +
+                    "Own - a soft glow along the inside of the item edge drawn by this mod\n" +
+                    "Off - no glow"
+            );
+
+            OverlayBorderMultiplier = general.BindConfig(
+                "Overlay border multiplier",
+                1f,
+                "Multiplies how visible the border is (on top of strong / later). 1 = as is, above 1 = more visible, 0 = invisible",
+                acceptableValue: new AcceptableValueRange<float>(0f, 4f)
+            );
+
+            OverlayGlowMultiplier = general.BindConfig(
+                "Overlay glow multiplier",
+                1f,
+                "Multiplies how visible the glow is (on top of strong / later). 1 = as is, above 1 = more visible, 0 = invisible",
+                acceptableValue: new AcceptableValueRange<float>(0f, 4f)
+            );
+
+            OverlayTintNative = general.BindConfig(
+                "Tint the native overlay",
+                true,
+                "Whether the game's own border and glow get the overlay color (gold, red...). The game's pictures are greenish, so the result can look olive; " +
+                    "off keeps the game's color and only changes how visible it is"
             );
 
             OverlayFrameBudget = general.BindConfig(

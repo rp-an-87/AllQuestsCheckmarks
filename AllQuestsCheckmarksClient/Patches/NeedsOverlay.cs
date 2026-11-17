@@ -36,6 +36,7 @@ namespace AllQuestsCheckmarks.Patches
             public bool Examined = true;
             public bool Modified;
             public int Retries;
+            public readonly Dictionary<Graphic, Color> Colors = [];
             public Image? Frame;
             public Image? Fill;
             public bool IconSaved;
@@ -291,19 +292,44 @@ namespace AllQuestsCheckmarks.Patches
 
         private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group)
         {
-            // native glow and border off: ours replace them (the game's icon stays, it knows where to sit)
             view.SetElementsActive(true);
-            view._glow?.SetActive(false);
-            view._border?.SetActive(false);
 
-            EnsureFrame(view, state);
+            Settings.EOverlayPart borderStyle = Settings.OverlayBorderStyle!.Value;
+            Settings.EOverlayPart glowStyle = Settings.OverlayGlowStyle!.Value;
+            float borderAlpha = strength * Settings.OverlayBorderMultiplier!.Value;
+            float glowAlpha = strength * Settings.OverlayGlowMultiplier!.Value;
 
-            state.Frame!.color = new Color(color.r, color.g, color.b, strength);
-            state.Frame.pixelsPerUnitMultiplier = 2f / Settings.OverlayBorderThickness!.Value;
-            state.Frame.gameObject.SetActive(true);
+            // border and glow: the game's own (tinted), ours, or none
+            NativePart(view._border, state, borderStyle == Settings.EOverlayPart.Native, color, borderAlpha);
+            NativePart(view._glow, state, glowStyle == Settings.EOverlayPart.Native, color, glowAlpha);
 
-            state.Fill!.color = new Color(color.r, color.g, color.b, Settings.OverlayGlowStrength!.Value * strength);
-            state.Fill.gameObject.SetActive(true);
+            if (borderStyle == Settings.EOverlayPart.Own || glowStyle == Settings.EOverlayPart.Own)
+            {
+                EnsureFrame(view, state);
+            }
+
+            if (state.Frame != null)
+            {
+                bool on = borderStyle == Settings.EOverlayPart.Own;
+                state.Frame.gameObject.SetActive(on);
+
+                if (on)
+                {
+                    state.Frame.color = new Color(color.r, color.g, color.b, Mathf.Clamp01(borderAlpha));
+                    state.Frame.pixelsPerUnitMultiplier = 2f / Settings.OverlayBorderThickness!.Value;
+                }
+            }
+
+            if (state.Fill != null)
+            {
+                bool on = glowStyle == Settings.EOverlayPart.Own;
+                state.Fill.gameObject.SetActive(on);
+
+                if (on)
+                {
+                    state.Fill.color = new Color(color.r, color.g, color.b, Mathf.Clamp01(0.55f * glowAlpha));
+                }
+            }
 
             if (view._icon != null)
             {
@@ -321,6 +347,35 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             state.Modified = true;
+        }
+
+        // The game's own border or glow: shown or hidden, and when shown tinted with the overlay color and scaled in strength
+        private static void NativePart(GameObject? part, State state, bool show, Color color, float alpha)
+        {
+            if (part == null)
+            {
+                return;
+            }
+
+            part.SetActive(show);
+
+            if (!show)
+            {
+                return;
+            }
+
+            bool tint = Settings.OverlayTintNative!.Value && color != Color.white;
+
+            foreach (Graphic graphic in part.GetComponentsInChildren<Graphic>(true))
+            {
+                if (!state.Colors.TryGetValue(graphic, out Color original))
+                {
+                    original = graphic.color;
+                    state.Colors[graphic] = original;
+                }
+
+                graphic.color = new Color(tint ? color.r : original.r, tint ? color.g : original.g, tint ? color.b : original.b, Mathf.Clamp01(original.a * alpha));
+            }
         }
 
         private static void EnsureFrame(WishlistGridView view, State state)
@@ -429,6 +484,14 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             state.Modified = false;
+
+            foreach (KeyValuePair<Graphic, Color> entry in state.Colors)
+            {
+                if (entry.Key != null)
+                {
+                    entry.Key.color = entry.Value;
+                }
+            }
 
             if (state.Frame != null)
             {
