@@ -12,6 +12,7 @@ namespace AllQuestsCheckmarks
         BepInPlugin("com.zgfuedkx.allquestscheckmarks", "ZGFueDkx-AllQuestsCheckmarks", "1.4.0"),
         BepInDependency("com.SPT.core", "4.1.0"),
         BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency),
+        BepInDependency("com.zgfuedkx.wishlistextended", BepInDependency.DependencyFlags.SoftDependency),
     ]
     public class Plugin : BaseUnityPlugin
     {
@@ -44,6 +45,10 @@ namespace AllQuestsCheckmarks
             new ProfileSelectionPatch().Enable();
             new QuestItemViewPanelPatch().Enable();
             new ItemSpecificationPanelPatch().Enable();
+            new ItemHoverShowTooltipPatch().Enable();
+            new ItemHoverExitPatch().Enable();
+            new CheckmarkHoverPatch().Enable();
+            new SimpleTooltipShowPatch().Enable();
             new UpdateApplicationLanguagePatch().Enable();
 
             LogSource.LogInfo($"AllQuestCheckmarks by ZGFueDkx version {Info.Metadata.Version} started");

@@ -53,6 +53,7 @@ namespace AllQuestsCheckmarks.Patches
             bool neededForActive = false;
             bool neededForFuture = false;
             bool neededForFriend = false;
+            bool neededForHideout = false;
             bool collectorOnly = true;
 
             int totalNeededFir = 0;
@@ -179,13 +180,73 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
-            if (totalNeededFir > 0 || showNonFir && totalNeededNonFir > 0)
+            // Hideout upgrades (from the Wishlist Extended fork). Same relevance rule as quests:
+            // a non-FiR item only matters if some requirement accepts non-FiR items.
+            string hideoutTooltip = "";
+            int hideoutFir = 0;
+            int hideoutNonFir = 0;
+
+            if (Settings.IncludeHideout!.Value && WishlistBridge.TryGetHideoutNeeds(item.StringTemplateId, out WishlistBridge.HideoutNeeds hideout))
             {
-                ____tooltipText += "\n" + string.Format((showNonFir ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
+                for (int i = 0; i < hideout.Quantity.Length; i++)
+                {
+                    if (hideout.Fir[i])
+                    {
+                        hideoutFir += hideout.Quantity[i];
+                    }
+                    else
+                    {
+                        hideoutNonFir += hideout.Quantity[i];
+                    }
+                }
+
+                if (item.MarkedAsSpawnedInSession && hideoutFir + hideoutNonFir > 0 || hideoutNonFir > 0)
+                {
+                    neededForHideout = true;
+                    collectorOnly = false;
+
+                    string hideoutColor = Settings.HideoutTextColor!.GetHexColor(!useCustomTextColors);
+
+                    for (int pass = 0; pass < 2; pass++)
+                    {
+                        bool futurePass = pass == 1;
+                        bool header = false;
+
+                        for (int i = 0; i < hideout.Quantity.Length; i++)
+                        {
+                            if (hideout.Future[i] != futurePass)
+                            {
+                                continue;
+                            }
+
+                            if (!header)
+                            {
+                                header = true;
+                                hideoutTooltip += "\n" + (futurePass ? "aqc_hideout_future" : "aqc_hideout").Localized(null);
+                            }
+
+                            hideoutTooltip += $"\n{indent}<color={hideoutColor}>{hideout.Area[i]} lvl {hideout.Level[i]}</color>: {hideout.Quantity[i]} "
+                                + (hideout.Fir[i] ? "aqc_fir" : "aqc_nonfir").Localized(null);
+                        }
+                    }
+
+                    totalNeededFir += hideoutFir;
+                    totalNeededNonFir += hideoutNonFir;
+                }
+            }
+
+            neededForFuture |= neededForHideout;
+
+            // hideout non-FiR needs must show in the total even when non-FiR quests are off
+            bool showNonFirTotal = showNonFir || neededForHideout && hideoutNonFir > 0;
+
+            if (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0)
+            {
+                ____tooltipText += "\n" + string.Format((showNonFirTotal ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
                        totalNeededFir, totalNeededNonFir);
             }
 
-            ____tooltipText += activeQuestsTooltip + futureQuestsTooltip;
+            ____tooltipText += activeQuestsTooltip + futureQuestsTooltip + hideoutTooltip;
 
             if (Plugin.isFikaInstalled && Settings.SquadQuests!.Value && SquadQuests.IsNeededForSquadMembers(item, out List<string> members))
             {

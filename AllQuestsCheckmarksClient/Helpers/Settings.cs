@@ -14,6 +14,8 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? OnlyActiveQuests;
         public static ConfigEntry<bool>? IncludeRaidItems;
         public static ConfigEntry<bool>? SquadQuests;
+        public static ConfigEntry<bool>? IncludeHideout;
+        public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? MarkEnoughItems;
         public static ConfigEntry<bool>? UseCustomQuestColor;
         public static ConfigEntry<bool>? BulletPoints;
@@ -28,6 +30,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<Color>? SquadColor;
         public static ConfigEntry<Color>? ActiveQuestTextColor;
         public static ConfigEntry<Color>? FutureQuestTextColor;
+        public static ConfigEntry<Color>? HideoutTextColor;
         public static ConfigEntry<Color>? SquadQuestTextColor;
 
         public static void Init(ConfigFile config)
@@ -81,6 +84,19 @@ namespace AllQuestsCheckmarks.Helpers
                 "Include items in PMC inventory (in raid)",
                 false,
                 "Whether or not to include items in PMC inventory while in raid in 'In Stash' count"
+            );
+
+            IncludeHideout = general.BindConfig(
+                "Include hideout upgrades (needs Wishlist Extended fork)",
+                true,
+                "Whether or not to add hideout upgrade requirements (FiR and non-FiR) to the tooltip and to 'Total needed'. " +
+                    "Needs the Wishlist Extended fork; has no effect without it"
+            );
+
+            HoverItemTooltip = general.BindConfig(
+                "Show tooltip when hovering the item",
+                true,
+                "Whether or not to also show the checkmark tooltip when hovering the item itself, not only the checkmark"
             );
 
             /*
@@ -154,6 +170,12 @@ namespace AllQuestsCheckmarks.Helpers
                 "Custom text color - future quests",
                 "#d24dff",
                 "Custom color of future quests text"
+            );
+
+            HideoutTextColor = text.BindColor(
+                "Custom text color - hideout",
+                "#4dc3ff",
+                "Custom color of hideout upgrades text"
             );
 
             if (Plugin.isFikaInstalled)
