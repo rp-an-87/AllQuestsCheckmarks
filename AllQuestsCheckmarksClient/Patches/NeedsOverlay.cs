@@ -37,6 +37,7 @@ namespace AllQuestsCheckmarks.Patches
             public bool Modified;
             public int Retries;
             public readonly Dictionary<Graphic, Color> Colors = [];
+            public readonly Dictionary<Image, Sprite> Sprites = [];
             public Image? Frame;
             public Image? Fill;
             public bool IconSaved;
@@ -376,8 +377,94 @@ namespace AllQuestsCheckmarks.Patches
                     state.Colors[graphic] = original;
                 }
 
-                graphic.color = new Color(tint ? color.r : original.r, tint ? color.g : original.g, tint ? color.b : original.b, Mathf.Clamp01(original.a * alpha));
+                // the game's pictures are green: a color only multiplies with them (gold turns olive). A white copy of the same picture takes any color exactly
+                bool recolored = false;
+
+                if (graphic is Image image && image.sprite != null)
+                {
+                    if (!state.Sprites.TryGetValue(image, out Sprite originalSprite))
+                    {
+                        originalSprite = image.sprite;
+                        state.Sprites[image] = originalSprite;
+                    }
+
+                    Sprite? white = tint ? WhiteCopy(originalSprite) : null;
+                    image.sprite = white != null ? white : originalSprite;
+                    recolored = white != null;
+                }
+
+                bool exact = tint && recolored;
+                graphic.color = new Color(tint ? color.r : original.r, tint ? color.g : original.g, tint ? color.b : original.b,
+                    Mathf.Clamp01((exact ? 1f : original.a) * alpha));
             }
+        }
+
+        private static readonly Dictionary<Sprite, Sprite?> _whiteCopies = [];
+
+        // The same picture (shape and fade) in white, so that a color applied to it comes out as that color. Made once per sprite
+        private static Sprite? WhiteCopy(Sprite source)
+        {
+            if (_whiteCopies.TryGetValue(source, out Sprite? cached))
+            {
+                return cached;
+            }
+
+            Sprite? result = null;
+
+            try
+            {
+                Texture2D texture = source.texture;
+                Rect rect = source.textureRect;
+                int width = Mathf.RoundToInt(rect.width);
+                int height = Mathf.RoundToInt(rect.height);
+
+                // read the sprite's part of the texture back through a render texture (the game's textures are not readable)
+                RenderTexture target = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+                Graphics.Blit(texture, target,
+                    new Vector2(rect.width / texture.width, rect.height / texture.height),
+                    new Vector2(rect.x / texture.width, rect.y / texture.height));
+
+                RenderTexture previous = RenderTexture.active;
+                RenderTexture.active = target;
+                Texture2D copy = new(width, height, TextureFormat.RGBA32, false);
+                copy.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(target);
+
+                Color32[] pixels = copy.GetPixels32();
+                byte minAlpha = 255;
+                byte maxAlpha = 0;
+
+                foreach (Color32 pixel in pixels)
+                {
+                    minAlpha = pixel.a < minAlpha ? pixel.a : minAlpha;
+                    maxAlpha = pixel.a > maxAlpha ? pixel.a : maxAlpha;
+                }
+
+                // the shape is in the alpha channel when that varies, otherwise in the brightness
+                bool useAlpha = maxAlpha - minAlpha > 25;
+
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    byte a = useAlpha ? pixels[i].a : (byte)Mathf.Max(pixels[i].r, Mathf.Max(pixels[i].g, pixels[i].b));
+                    pixels[i] = new Color32(255, 255, 255, a);
+                }
+
+                copy.SetPixels32(pixels);
+                copy.filterMode = texture.filterMode;
+                copy.wrapMode = TextureWrapMode.Clamp;
+                copy.Apply();
+
+                result = Sprite.Create(copy, new Rect(0, 0, width, height), new Vector2(source.pivot.x / width, source.pivot.y / height),
+                    source.pixelsPerUnit, 0, SpriteMeshType.FullRect, source.border);
+            }
+            catch (System.Exception e)
+            {
+                Plugin.LogSource?.LogWarning($"Could not make a white copy of the overlay sprite {source.name}: {e.Message}");
+            }
+
+            _whiteCopies[source] = result;
+            return result;
         }
 
         private static void EnsureFrame(WishlistGridView view, State state)
@@ -492,6 +579,14 @@ namespace AllQuestsCheckmarks.Patches
                 if (entry.Key != null)
                 {
                     entry.Key.color = entry.Value;
+                }
+            }
+
+            foreach (KeyValuePair<Image, Sprite> entry in state.Sprites)
+            {
+                if (entry.Key != null)
+                {
+                    entry.Key.sprite = entry.Value;
                 }
             }
 

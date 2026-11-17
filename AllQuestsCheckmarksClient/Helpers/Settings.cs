@@ -240,8 +240,8 @@ namespace AllQuestsCheckmarks.Helpers
             OverlayTintNative = general.BindConfig(
                 "Tint the native overlay",
                 true,
-                "Whether the game's own border and glow get the overlay color (gold, red...). The game's pictures are greenish, so the result can look olive; " +
-                    "off keeps the game's color and only changes how visible it is"
+                "Whether the game's own border and glow get the overlay color (gold, red...). The game's pictures are green, so the mod colors a white copy of them " +
+                    "(same shape, exact color); off keeps the game's own green and only changes how visible it is"
             );
 
             OverlayFrameBudget = general.BindConfig(
