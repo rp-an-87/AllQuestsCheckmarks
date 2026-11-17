@@ -48,13 +48,6 @@ namespace AllQuestsCheckmarks.Patches
         {
             __instance.HideGameObject();
 
-            if (Settings.HideInHideoutRequirements!.Value && IsHideoutView(__instance))
-            {
-                ____tooltip = null;
-                ____tooltipText = "";
-                return false;
-            }
-
             if (____questItemLabel != null)
             {
                 ____questItemLabel.gameObject.SetActive(item.QuestItem);
@@ -322,8 +315,24 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             int leftFir = inStash.Fir - totalNeededFir;
-            switch (QuestsHelper.GetCheckmarkStatus(neededForActive, neededForFuture, neededForFriend, item.MarkedAsSpawnedInSession,
-                leftFir >= 0 && inStash.NonFir + leftFir - totalNeededNonFir >= 0, collectorOnly))
+            QuestsHelper.ECheckmarkStatus status = QuestsHelper.GetCheckmarkStatus(neededForActive, neededForFuture, neededForFriend, item.MarkedAsSpawnedInSession,
+                leftFir >= 0 && inStash.NonFir + leftFir - totalNeededNonFir >= 0, collectorOnly);
+
+            // the tooltip text above stays; hovering the item uses it whenever something is needed, even if no checkmark is drawn
+            ItemHoverTooltip.SetRelevant(__instance, status != QuestsHelper.ECheckmarkStatus.None);
+
+            // hideout requirement icons: vanilla checkmark (found in raid items only), so FiR vs non-FiR reads at a glance
+            if (Settings.VanillaCheckmarkInHideout!.Value && IsHideoutView(__instance))
+            {
+                if (item.MarkedAsSpawnedInSession)
+                {
+                    QuestsHelper.SetCheckmark(__instance, ____questIconImage, ____foundInRaidSprite, QuestsHelper.DEFAULT_COLOR);
+                }
+
+                return false;
+            }
+
+            switch (status)
             {
                 case QuestsHelper.ECheckmarkStatus.Fir:
                     QuestsHelper.SetCheckmark(__instance, ____questIconImage, ____foundInRaidSprite, QuestsHelper.DEFAULT_COLOR);

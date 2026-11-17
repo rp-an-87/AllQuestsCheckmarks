@@ -18,7 +18,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? CheckmarkOnNonFir;
         public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? SeparatedTooltip;
-        public static ConfigEntry<bool>? HideInHideoutRequirements;
+        public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
         public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<bool>? MarkEnoughItems;
         public static ConfigEntry<bool>? UseCustomQuestColor;
@@ -117,10 +117,11 @@ namespace AllQuestsCheckmarks.Helpers
                     "Off keeps the original single block"
             );
 
-            HideInHideoutRequirements = general.BindConfig(
-                "Hide checkmarks on hideout requirement items",
+            VanillaCheckmarkInHideout = general.BindConfig(
+                "Vanilla checkmark on hideout requirement items",
                 true,
-                "Whether or not to hide the checkmark (and its tooltip) on the item icons of hideout upgrade requirements, where it only adds confusion"
+                "Whether or not the item icons of hideout upgrade requirements should show the vanilla checkmark (FiR items only) instead of the colored ones. " +
+                    "The tooltip is not affected"
             );
 
             CompactFirLabels = general.BindConfig(

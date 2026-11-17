@@ -4,6 +4,7 @@ using EFT.UI.DragAndDrop;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace AllQuestsCheckmarks.Patches
@@ -16,6 +17,19 @@ namespace AllQuestsCheckmarks.Patches
     {
         private static readonly AccessTools.FieldRef<QuestItemViewPanel, string> _textRef =
             AccessTools.FieldRefAccess<QuestItemViewPanel, string>("_tooltipText");
+
+        private static readonly ConditionalWeakTable<QuestItemViewPanel, object> _relevant = new();
+
+        // Remembers whether the item needs a tooltip, independent of whether a checkmark is drawn
+        public static void SetRelevant(QuestItemViewPanel panel, bool relevant)
+        {
+            _relevant.Remove(panel);
+
+            if (relevant)
+            {
+                _relevant.Add(panel, new object());
+            }
+        }
 
         private static string? _pending;
         private static bool _fromCheckmark;
@@ -30,7 +44,7 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             QuestItemViewPanel panel = item.QuestsItemViewPanel;
-            if (panel == null || !panel.gameObject.activeSelf)
+            if (panel == null || !panel.gameObject.activeSelf && !_relevant.TryGetValue(panel, out _))
             {
                 return;
             }
