@@ -135,6 +135,8 @@ namespace AllQuestsCheckmarks.Patches
             System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
             ShowTooltip(item);
 
+            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
+
             if (watch.ElapsedMilliseconds >= 3)
             {
                 Plugin.LogSlow($"hover tooltip: {watch.ElapsedMilliseconds} ms for {item.Item?.TemplateId}");
@@ -182,6 +184,8 @@ namespace AllQuestsCheckmarks.Patches
         {
             System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
             TooltipShow(ref text);
+
+            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
 
             if (watch.ElapsedMilliseconds >= 3)
             {

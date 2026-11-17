@@ -104,6 +104,8 @@ namespace AllQuestsCheckmarks.Patches
                     }
                 }
 
+                Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
+
                 if (_queue.Count > 0)
                 {
                     yield return null;

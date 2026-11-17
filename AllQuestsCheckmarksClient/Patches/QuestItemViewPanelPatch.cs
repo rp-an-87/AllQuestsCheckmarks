@@ -33,8 +33,6 @@ namespace AllQuestsCheckmarks.Patches
             ItemView? view = panel.GetComponentInParent<ItemView>();
             EItemViewType? viewType = view?.ItemContext?.ViewType;
 
-            Plugin.LogDebug($"Checkmark panel: requirement panel={inRequirementPanel}, view type={viewType}");
-
             return inRequirementPanel || viewType == EItemViewType.Hideout;
         }
 
@@ -57,6 +55,8 @@ namespace AllQuestsCheckmarks.Patches
             System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
             bool result = PrefixCore(profile, item, tooltip, __instance, ____questIconImage, ____foundInRaidSprite, ____questItemSprite,
                 ref ____tooltipText, ref ____tooltip, ____questItemLabel);
+
+            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
 
             if (watch.ElapsedMilliseconds >= 3)
             {

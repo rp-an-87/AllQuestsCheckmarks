@@ -417,6 +417,8 @@ namespace AllQuestsCheckmarks.Helpers
                 Version++;
             }
 
+            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
+
             if (watch.ElapsedMilliseconds >= 8)
             {
                 Plugin.LogSlow($"needs snapshot: {watch.ElapsedMilliseconds} ms, {_needs.Count} items, {pools.Count} quest conditions");
