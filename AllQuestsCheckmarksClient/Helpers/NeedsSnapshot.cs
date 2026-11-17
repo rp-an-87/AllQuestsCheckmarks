@@ -5,6 +5,7 @@ using EFT.Quests;
 using SPT.Reflection.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
 using ZGFueDkx.ZGCLib.helpers;
@@ -21,6 +22,9 @@ namespace AllQuestsCheckmarks.Helpers
     internal static class NeedsSnapshot
     {
         private const float MaxAge = 5f;
+
+        // inventory events can fire many times a second (hovering some items does): rebuild at most this often
+        private const float MinRebuildInterval = 0.3f;
 
         public enum EStrength
         {
@@ -86,6 +90,12 @@ namespace AllQuestsCheckmarks.Helpers
         private static float _builtAt;
         private static bool _builtInRaid;
         private static bool _failed;
+        private static int _lastHash;
+
+        // goes up only when a rebuild gave different results, so the views are redrawn only when something changed
+        public static int Version { get; private set; }
+
+        public static void Refresh() => EnsureFresh();
 
         public static void Invalidate() => _dirty = true;
 
@@ -101,8 +111,15 @@ namespace AllQuestsCheckmarks.Helpers
         private static void EnsureFresh()
         {
             bool inRaid = InRaid;
+            float age = Time.realtimeSinceStartup - _builtAt;
 
-            if (!_dirty && inRaid == _builtInRaid && Time.realtimeSinceStartup - _builtAt < MaxAge)
+            if (!_dirty && inRaid == _builtInRaid && age < MaxAge)
+            {
+                return;
+            }
+
+            // a burst of events must not cause a rebuild each time: keep the last result a moment (still marked dirty)
+            if (inRaid == _builtInRaid && age < MinRebuildInterval)
             {
                 return;
             }
@@ -131,6 +148,7 @@ namespace AllQuestsCheckmarks.Helpers
 
         private static void Rebuild(bool inRaid)
         {
+            Stopwatch watch = Stopwatch.StartNew();
             _needs.Clear();
 
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
@@ -367,7 +385,21 @@ namespace AllQuestsCheckmarks.Helpers
                 }
             }
 
-            Plugin.LogDebug($"Needs snapshot built (in raid: {inRaid}): {_needs.Count} items, {pools.Count} quest conditions");
+            int hash = 17;
+            foreach (KeyValuePair<MongoID, ItemNeed> entry in _needs)
+            {
+                ItemNeed n = entry.Value;
+                hash = unchecked(hash + entry.Key.GetHashCode() * 31
+                    + ((int)n.Loot * 7 + (int)n.Buy * 11 + n.LootCount * 13 + n.BuyCount * 17 + n.HandInCount * 19 + (n.CollectorMissing ? 23 : 0) + (n.HandIn ? 29 : 0)) * 37);
+            }
+
+            if (hash != _lastHash)
+            {
+                _lastHash = hash;
+                Version++;
+            }
+
+            Plugin.LogDebug($"Needs snapshot built in {watch.ElapsedMilliseconds} ms (in raid: {inRaid}): {_needs.Count} items, {pools.Count} quest conditions, changed: {Version}");
         }
 
         // Same quest filters as the checkmarks (Collector, loyalty regain)

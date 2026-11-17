@@ -42,6 +42,7 @@ namespace AllQuestsCheckmarks.Patches
         private static readonly HashSet<WishlistGridView> _views = [];
         private static bool _applying;
         private static bool _refreshQueued;
+        private static int _appliedVersion = -1;
 
         public static void EnablePatches()
         {
@@ -69,9 +70,18 @@ namespace AllQuestsCheckmarks.Patches
 
         private static IEnumerator RefreshLater()
         {
-            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForSeconds(0.3f);
             _refreshQueued = false;
 
+            // rebuild first; redraw only if the result is different from what the views already show
+            NeedsSnapshot.Refresh();
+
+            if (NeedsSnapshot.Version == _appliedVersion)
+            {
+                yield break;
+            }
+
+            _appliedVersion = NeedsSnapshot.Version;
             _views.RemoveWhere(v => v == null);
 
             foreach (WishlistGridView view in _views.ToArray())
