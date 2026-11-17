@@ -85,7 +85,7 @@ namespace AllQuestsCheckmarks.Patches
 
                 bool now = source == NeedsSnapshot.QuestNow || source == NeedsSnapshot.HideoutNow;
                 string color = now ? "#E6E6E6" : "#8F8F8F";
-                result += $"\n<size=85%><color={color}>  · {counts[source]}{unit} {string.Format("aqc_for".Localized(null), SourceName(source))}</color></size>";
+                result += $"\n<size=85%><color={color}>  · {NumberFormat.Compact(counts[source])}{unit} {string.Format("aqc_for".Localized(null), SourceName(source))}</color></size>";
             }
 
             return result.Length == 0 ? "" : "<size=85%><color=#B8B8B8>" + headerKey.Localized(null) + "</color></size>" + result;

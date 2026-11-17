@@ -2,6 +2,7 @@
 using EFT;
 using EFT.InventoryLogic;
 using EFT.Quests;
+using EFT.Trading;
 using SPT.Reflection.Utils;
 using System;
 using System.Collections.Generic;
@@ -98,6 +99,9 @@ namespace AllQuestsCheckmarks.Helpers
         private static readonly Dictionary<MongoID, ItemNeed> _needs = [];
         private static readonly Dictionary<MongoID, List<PoolInfo>> _pools = [];
         private static readonly Dictionary<MongoID, bool> _buyable = [];
+        private const float TraderItemsMaxAge = 30f;
+        private static HashSet<MongoID> _traderItems = [];
+        private static float _traderItemsAt = -100f;
         private static readonly StashHelper.ItemsCount _none = new();
         private static Dictionary<MongoID, StashHelper.ItemsCount> _held = [];
         private static bool _dirty = true;
@@ -180,6 +184,7 @@ namespace AllQuestsCheckmarks.Helpers
             Stopwatch watch = Stopwatch.StartNew();
             _needs.Clear();
             _pools.Clear();
+            RefreshTraderItems();
 
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
             Dictionary<MongoID, StashHelper.ItemsCount> held = Settings.DebugEmptyStash!.Value ? [] : StashHelper.CountAll();
@@ -469,7 +474,50 @@ namespace AllQuestsCheckmarks.Helpers
             return Settings.IncludeLoyaltyRegain!.Value || !QuestsHelper.TRUST_REGAIN_QUESTS.Contains(questId);
         }
 
-        // Can it be bought? Flea market eligibility from the item template (trader-only items are treated as buyable)
+        // Everything the traders sell right now (their loaded assortments: the item types, for money or barter). Refreshed every 30 s
+        private static void RefreshTraderItems()
+        {
+            if (Time.realtimeSinceStartup - _traderItemsAt < TraderItemsMaxAge)
+            {
+                return;
+            }
+
+            _traderItemsAt = Time.realtimeSinceStartup;
+
+            try
+            {
+                HashSet<MongoID> items = [];
+                object session = ClientAppUtils.GetClientApp().GetClientBackEndSession();
+
+                if (session.GetType().GetProperty("Traders")?.GetValue(session) is IEnumerable<Trader> traders)
+                {
+                    foreach (Trader trader in traders)
+                    {
+                        Assortment? assortment = trader?.Info is { Unlocked: true } ? trader.CurrentAssortment : null;
+
+                        if (assortment?.TraderController?.RootItem is null)
+                        {
+                            continue;
+                        }
+
+                        foreach (Item item in assortment.TraderController.RootItem.GetAllItems())
+                        {
+                            items.Add(item.TemplateId);
+                        }
+                    }
+                }
+
+                _traderItems = items;
+                _buyable.Clear();
+                Plugin.LogDebug($"Trader items: {items.Count} item types for sale");
+            }
+            catch (Exception e)
+            {
+                Plugin.LogSource?.LogWarning($"Reading the traders' assortments failed, only the flea market ban is used: {e.Message}");
+            }
+        }
+
+        // Can it be bought? On the flea market (not banned), or sold by a trader
         private static bool IsBuyable(MongoID id)
         {
             if (_buyable.TryGetValue(id, out bool cached))
@@ -481,7 +529,7 @@ namespace AllQuestsCheckmarks.Helpers
 
             if (Singleton<ItemFactory>.Instantiated && Singleton<ItemFactory>.Instance.ItemTemplates.TryGetValue(id, out ItemTemplate template))
             {
-                buyable = template.CanSellOnRagfair;
+                buyable = template.CanSellOnRagfair || _traderItems.Contains(id);
             }
 
             _buyable[id] = buyable;

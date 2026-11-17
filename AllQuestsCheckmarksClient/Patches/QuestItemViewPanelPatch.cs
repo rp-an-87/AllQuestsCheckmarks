@@ -127,7 +127,7 @@ namespace AllQuestsCheckmarks.Patches
                 {
                     if (pool.QuestId == questId)
                     {
-                        return "\n    " + string.Format("aqc_pool_note".Localized(null), pool.TargetCount, pool.Held);
+                        return "\n    " + string.Format("aqc_pool_note".Localized(null), pool.TargetCount, NumberFormat.Compact(pool.Held));
                     }
                 }
 

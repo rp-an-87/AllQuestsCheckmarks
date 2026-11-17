@@ -27,6 +27,14 @@ namespace AllQuestsCheckmarks.Patches
     /// </summary>
     internal static class NeedsOverlay
     {
+        // which picture the overlay icon shows: the game's own for the group (hideout, quest, both), or one drawn by this mod
+        private enum EIcon
+        {
+            Group,
+            HandIn,
+            Collector,
+        }
+
         private static readonly AccessTools.FieldRef<WishlistGridView, MongoID> _templateRef =
             AccessTools.FieldRefAccess<WishlistGridView, MongoID>("_templateId");
 
@@ -39,6 +47,7 @@ namespace AllQuestsCheckmarks.Patches
             public readonly Dictionary<Graphic, Color> Colors = [];
             public readonly Dictionary<Image, Sprite> Sprites = [];
             public Image? Frame;
+            public Image? Clock;
             public Image? Fill;
             public bool IconSaved;
             public Color IconColor;
@@ -212,13 +221,13 @@ namespace AllQuestsCheckmarks.Patches
             {
                 State state = _states.GetOrCreateValue(view);
 
-                if (!Settings.UseOverlays!.Value || !state.Examined || !TryGetStyle(view, state, out Color color, out float strength, out EWishlistGroup group))
+                if (!Settings.UseOverlays!.Value || !state.Examined || !TryGetStyle(view, state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon))
                 {
                     Restore(view, state);
                     return;
                 }
 
-                Style(view, state, color, strength, group);
+                Style(view, state, color, strength, group, icon);
             }
             finally
             {
@@ -226,8 +235,9 @@ namespace AllQuestsCheckmarks.Patches
             }
         }
 
-        private static bool TryGetStyle(WishlistGridView view, State state, out Color color, out float strength, out EWishlistGroup group)
+        private static bool TryGetStyle(WishlistGridView view, State state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon)
         {
+            icon = EIcon.Group;
             color = default;
             strength = 1f;
             group = EWishlistGroup.Other;
@@ -271,6 +281,7 @@ namespace AllQuestsCheckmarks.Patches
                     }
 
                     group = EWishlistGroup.Other;
+                    icon = EIcon.Collector;
                     color = Settings.OverlayCollectorColor!.GetValue();
                     return true;
                 }
@@ -291,6 +302,7 @@ namespace AllQuestsCheckmarks.Patches
                 {
                     color = Settings.OverlayHandInColor!.GetValue();
                     group = EWishlistGroup.Quests;
+                    icon = EIcon.HandIn;
                     return true;
                 }
 
@@ -308,7 +320,7 @@ namespace AllQuestsCheckmarks.Patches
             return true;
         }
 
-        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group)
+        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group, EIcon icon)
         {
             view.SetElementsActive(true);
 
@@ -358,13 +370,61 @@ namespace AllQuestsCheckmarks.Patches
                     state.IconScale = view._icon.transform.localScale;
                 }
 
-                view.SetIcon(group);
+                if (icon == EIcon.Group)
+                {
+                    view.SetIcon(group);
+                }
+                else
+                {
+                    view._icon.sprite = icon == EIcon.HandIn ? OverlayIcons.HandIn : OverlayIcons.Collector;
+                    view._icon.preserveAspect = true;
+                }
+
                 view._icon.color = new Color(1f, 1f, 1f, strength);
                 view._icon.transform.localScale = state.IconScale * Settings.OverlayIconScale!.Value;
                 view._icon.gameObject.SetActive(true);
+
+                ShowClock(view, state, strength < 1f && icon == EIcon.Group);
             }
 
             state.Modified = true;
+        }
+
+        // A small clock next to the icon when the need is for later. It is a child of the icon, so it moves and scales with it
+        private static void ShowClock(WishlistGridView view, State state, bool show)
+        {
+            if (!show)
+            {
+                if (state.Clock != null)
+                {
+                    state.Clock.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            if (state.Clock == null)
+            {
+                GameObject go = new("AQC_Clock", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(view._icon.transform, false);
+
+                RectTransform rect = (RectTransform)go.transform;
+                rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
+                rect.pivot = new Vector2(0f, 0f);
+                rect.anchoredPosition = new Vector2(1f, 0f);
+
+                Image image = go.GetComponent<Image>();
+                image.sprite = OverlayIcons.Clock;
+                image.preserveAspect = true;
+                image.raycastTarget = false;
+                state.Clock = image;
+            }
+
+            RectTransform iconRect = (RectTransform)view._icon.transform;
+            float side = Mathf.Max(8f, Mathf.Min(iconRect.rect.width, iconRect.rect.height) * 0.6f);
+            state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
+            state.Clock.color = Color.white;
+            state.Clock.gameObject.SetActive(true);
         }
 
         // The game's own border or glow: shown or hidden, and when shown tinted with the overlay color and scaled in strength
@@ -603,6 +663,11 @@ namespace AllQuestsCheckmarks.Patches
                 {
                     entry.Key.sprite = entry.Value;
                 }
+            }
+
+            if (state.Clock != null)
+            {
+                state.Clock.gameObject.SetActive(false);
             }
 
             if (state.Frame != null)
