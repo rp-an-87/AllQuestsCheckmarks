@@ -7,7 +7,9 @@ using EFT.UI.DragAndDrop;
 using HarmonyLib;
 using JetBrains.Annotations;
 using SPT.Reflection.Patching;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
@@ -98,6 +100,25 @@ namespace AllQuestsCheckmarks.Patches
             bool useCustomTextColors = Settings.CustomTextColors!.Value;
             string indent = Settings.BulletPoints!.Value ? "  · " : "  ";
 
+            // quest conditions that several items share one count for: noted on the quest line, and kept out of "Total needed"
+            // (what you hold of the others counts too, so the per item numbers would mislead)
+            IReadOnlyList<NeedsSnapshot.PoolInfo> pools = NeedsSnapshot.PoolsFor(item.TemplateId);
+
+            bool IsPooled(MongoID questId) => pools.Any(p => p.QuestId == questId);
+
+            string PoolNote(MongoID questId)
+            {
+                foreach (NeedsSnapshot.PoolInfo pool in pools)
+                {
+                    if (pool.QuestId == questId)
+                    {
+                        return " " + string.Format("aqc_pool_note".Localized(null), pool.TargetCount, pool.Held);
+                    }
+                }
+
+                return "";
+            }
+
             if (QuestsHelper.GetActiveQuestsWithItem(profile, item, out Dictionary<MongoID, QuestsHelper.CurrentQuest> activeQuests,
                 out Dictionary<MongoID, QuestsHelper.CurrentQuest> fulfilled))
             {
@@ -128,12 +149,12 @@ namespace AllQuestsCheckmarks.Patches
                         if (condition.onlyFoundInRaid)
                         {
                             handedOverFir += counter.Value;
-                            totalNeededFir += (int)condition.value - counter.Value;
+                            if (!IsPooled(quest.Template.Id)) totalNeededFir += (int)condition.value - counter.Value;
                         }
                         else
                         {
                             handedOverNonFir += counter.Value;
-                            totalNeededNonFir += (int)condition.value - counter.Value;
+                            if (!IsPooled(quest.Template.Id)) totalNeededNonFir += (int)condition.value - counter.Value;
                         }
 
                         activeQuestsTooltip += $"{counter.Value}/{condition.value}";
@@ -147,6 +168,8 @@ namespace AllQuestsCheckmarks.Patches
                     {
                         activeQuestsTooltip += $"0/{quest.Condition.value}";
                     }
+
+                    activeQuestsTooltip += PoolNote(quest.Template.Id);
                 }
             }
 
@@ -170,6 +193,19 @@ namespace AllQuestsCheckmarks.Patches
 
                 totalNeededFir = itemData.Fir - handedOverFir;
                 totalNeededNonFir = itemData.NonFir - handedOverNonFir;
+
+                foreach (NeedsSnapshot.PoolInfo pool in pools)
+                {
+                    if (!itemData.Quests.ContainsKey(pool.QuestId))
+                    {
+                        continue;
+                    }
+
+                    if (pool.Fir) totalNeededFir -= pool.FullCount; else totalNeededNonFir -= pool.FullCount;
+                }
+
+                totalNeededFir = Math.Max(0, totalNeededFir);
+                totalNeededNonFir = Math.Max(0, totalNeededNonFir);
 
                 foreach (KeyValuePair<MongoID, QuestsData.QuestValues> quest in itemData.Quests)
                 {
@@ -208,6 +244,8 @@ namespace AllQuestsCheckmarks.Patches
                     {
                         futureQuestsTooltip += " " + FirLabel(quest.Value.Count.Fir);
                     }
+
+                    futureQuestsTooltip += PoolNote(quest.Key);
                 }
             }
 

@@ -14,7 +14,7 @@ namespace AllQuestsCheckmarks.Helpers
 {
     /// <summary>
     /// What the player has to do about each item, computed once and cached (rebuilt lazily when something changes, see Invalidate):
-    /// the overlays read one dictionary entry per item view.
+    /// the overlays and the tooltip read one dictionary entry per item.
     /// Needs come from three places that already exist: hideout upgrades (Wishlist Extended fork API), quests not started yet
     /// (the quest data of this mod) and started quests (the profile, with hand-in progress). Quest conditions that accept several items
     /// share one count, so they are evaluated as a pool over the stash.
@@ -33,16 +33,12 @@ namespace AllQuestsCheckmarks.Helpers
             Now = 2,
         }
 
-        // Why an item is needed (shown in the tooltip)
-        [Flags]
-        public enum EReason
-        {
-            None = 0,
-            QuestNow = 1,
-            QuestLater = 2,
-            HideoutNow = 4,
-            HideoutLater = 8,
-        }
+        // Where a need comes from, in the order held copies are used up: what is needed now comes first, so the shortage lands on later needs
+        public const int QuestNow = 0;
+        public const int HideoutNow = 1;
+        public const int QuestLater = 2;
+        public const int HideoutLater = 3;
+        public const int Sources = 4;
 
         public class ItemNeed
         {
@@ -53,38 +49,47 @@ namespace AllQuestsCheckmarks.Helpers
             public EStrength Loot;
             public EStrength Buy;
 
-            // how many are still missing, and for what
-            public int LootCount;
-            public EReason LootReasons;
-            public int BuyCount;
-            public EReason BuyReasons;
+            // what is still missing per source: FiR copies (and non-FiR copies that can't be bought) to loot, non-FiR copies to buy
+            public readonly int[] LootBy = new int[Sources];
+            public readonly int[] BuyBy = new int[Sources];
             public int HandInCount;
+        }
+
+        // A quest condition that accepts several items for one shared count, as seen from one of its items
+        public class PoolInfo
+        {
+            public MongoID QuestId;
+            public int TargetCount;
+            public int Held;
+            public int Remaining;
+            public int FullCount;
+            public bool Fir;
+            public bool Now;
         }
 
         private class Acc
         {
-            public int FirNow, FirLater, NonFirNow, NonFirLater;
-            public int PoolFirNow, PoolFirLater, PoolNonFirNow, PoolNonFirLater;
-            public EReason FirNowSrc, FirLaterSrc, NonFirNowSrc, NonFirLaterSrc;
+            public readonly int[] FirDemand = new int[Sources];
+            public readonly int[] NonFirDemand = new int[Sources];
+            public readonly int[] PoolFirShort = new int[Sources];
+            public readonly int[] PoolNonFirShort = new int[Sources];
             public int HandInCount;
             public bool HandIn, Collector, Quest, Hideout;
         }
 
-        private static EReason Source(bool now, bool hideout)
+        private class Pool(MongoID questId, List<MongoID> targets, int remaining, int fullCount, bool fir, bool now, bool collector)
         {
-            return hideout ? (now ? EReason.HideoutNow : EReason.HideoutLater) : (now ? EReason.QuestNow : EReason.QuestLater);
-        }
-
-        private class Pool(List<MongoID> targets, int remaining, bool fir, bool now, bool collector)
-        {
+            public MongoID QuestId = questId;
             public List<MongoID> Targets = targets;
             public int Remaining = remaining;
+            public int FullCount = fullCount;
             public bool Fir = fir;
             public bool Now = now;
             public bool Collector = collector;
         }
 
         private static readonly Dictionary<MongoID, ItemNeed> _needs = [];
+        private static readonly Dictionary<MongoID, List<PoolInfo>> _pools = [];
         private static readonly Dictionary<MongoID, bool> _buyable = [];
         private static bool _dirty = true;
         private static float _builtAt;
@@ -95,9 +100,9 @@ namespace AllQuestsCheckmarks.Helpers
         // goes up only when a rebuild gave different results, so the views are redrawn only when something changed
         public static int Version { get; private set; }
 
-        public static void Refresh() => EnsureFresh();
-
         public static void Invalidate() => _dirty = true;
+
+        public static void Refresh() => EnsureFresh();
 
         // the real raid state, or the debug switch that stands in for it
         public static bool InRaid => RaidUtils.IsInRaid() || Settings.DebugInRaid!.Value;
@@ -106,6 +111,13 @@ namespace AllQuestsCheckmarks.Helpers
         {
             EnsureFresh();
             return _needs.TryGetValue(itemId, out need);
+        }
+
+        // Quest conditions that several items share, as seen from one item (empty for most items)
+        public static IReadOnlyList<PoolInfo> PoolsFor(MongoID itemId)
+        {
+            EnsureFresh();
+            return _pools.TryGetValue(itemId, out List<PoolInfo> list) ? list : [];
         }
 
         private static void EnsureFresh()
@@ -136,6 +148,7 @@ namespace AllQuestsCheckmarks.Helpers
             catch (Exception e)
             {
                 _needs.Clear();
+                _pools.Clear();
 
                 if (!_failed)
                 {
@@ -150,6 +163,7 @@ namespace AllQuestsCheckmarks.Helpers
         {
             Stopwatch watch = Stopwatch.StartNew();
             _needs.Clear();
+            _pools.Clear();
 
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
             Dictionary<MongoID, StashHelper.ItemsCount> held = Settings.DebugEmptyStash!.Value ? [] : StashHelper.CountAll();
@@ -208,7 +222,7 @@ namespace AllQuestsCheckmarks.Helpers
                         continue;
                     }
 
-                    List<MongoID> targets = [.. conditionItem.target.Where(AQCUtils.IsValidMongoID).Select(t => new MongoID(t))];
+                    List<MongoID> targets = [.. conditionItem.target.Where(AQCUtils.IsValidMongoID).Select(t => new MongoID(t)).Distinct()];
                     int remaining = (int)conditionItem.value;
 
                     if (profile.TaskConditionCounters.TryGetValue(condition.id, out TaskConditionCounter counter))
@@ -224,7 +238,7 @@ namespace AllQuestsCheckmarks.Helpers
                     }
 
                     seen.Add(key);
-                    pools.Add(new Pool(targets, remaining, fir, true, collector));
+                    pools.Add(new Pool(quest.Template.Id, targets, remaining, (int)conditionItem.value, fir, true, collector));
                 }
             }
 
@@ -236,12 +250,14 @@ namespace AllQuestsCheckmarks.Helpers
                     continue;
                 }
 
-                pools.Add(new Pool(pool.Targets, pool.Count, pool.Fir, false, pool.QuestId == QuestsHelper.COLLECTOR_ID));
+                pools.Add(new Pool(pool.QuestId, [.. pool.Targets.Distinct()], pool.Count, pool.Count, pool.Fir, false, pool.QuestId == QuestsHelper.COLLECTOR_ID));
             }
 
             foreach (Pool pool in pools)
             {
                 int heldByPool = pool.Targets.Sum(t => held.TryGetValue(t, out StashHelper.ItemsCount c) ? (pool.Fir ? c.Fir : c.Total) : 0);
+                bool shared = pool.Targets.Count > 1;
+                int sourceIndex = pool.Now ? QuestNow : QuestLater;
 
                 foreach (MongoID target in pool.Targets)
                 {
@@ -252,17 +268,7 @@ namespace AllQuestsCheckmarks.Helpers
                     if (pool.Now && heldByPool > 0 && own is not null && (pool.Fir ? own.Fir : own.Total) > 0)
                     {
                         acc.HandIn = true;
-                        acc.HandInCount += Math.Min(pool.Remaining, pool.Targets.Count == 1 ? (pool.Fir ? own.Fir : own.Total) : heldByPool);
-                    }
-
-                    EReason source = Source(pool.Now, false);
-                    if (pool.Fir)
-                    {
-                        if (pool.Now) acc.FirNowSrc |= source; else acc.FirLaterSrc |= source;
-                    }
-                    else
-                    {
-                        if (pool.Now) acc.NonFirNowSrc |= source; else acc.NonFirLaterSrc |= source;
+                        acc.HandInCount += Math.Min(pool.Remaining, shared ? heldByPool : (pool.Fir ? own.Fir : own.Total));
                     }
 
                     if (pool.Collector)
@@ -270,32 +276,35 @@ namespace AllQuestsCheckmarks.Helpers
                         acc.Collector = true;
                     }
 
-                    if (pool.Targets.Count == 1)
+                    if (!shared)
                     {
                         // a single item: allocated with the other needs of that item below
-                        if (pool.Fir)
-                        {
-                            if (pool.Now) acc.FirNow += pool.Remaining; else acc.FirLater += pool.Remaining;
-                        }
-                        else
-                        {
-                            if (pool.Now) acc.NonFirNow += pool.Remaining; else acc.NonFirLater += pool.Remaining;
-                        }
+                        (pool.Fir ? acc.FirDemand : acc.NonFirDemand)[sourceIndex] += pool.Remaining;
+                        continue;
                     }
-                    else if (heldByPool < pool.Remaining)
-                    {
-                        // several items share the count: short until the sum of what you hold reaches it
-                        int shortBy = pool.Remaining - heldByPool;
 
-                        if (pool.Fir)
-                        {
-                            if (pool.Now) acc.PoolFirNow += shortBy; else acc.PoolFirLater += shortBy;
-                        }
-                        else
-                        {
-                            if (pool.Now) acc.PoolNonFirNow += shortBy; else acc.PoolNonFirLater += shortBy;
-                        }
+                    // several items share the count: short until the sum of what you hold reaches it
+                    if (heldByPool < pool.Remaining)
+                    {
+                        (pool.Fir ? acc.PoolFirShort : acc.PoolNonFirShort)[sourceIndex] += pool.Remaining - heldByPool;
                     }
+
+                    if (!_pools.TryGetValue(target, out List<PoolInfo> list))
+                    {
+                        list = [];
+                        _pools.Add(target, list);
+                    }
+
+                    list.Add(new PoolInfo
+                    {
+                        QuestId = pool.QuestId,
+                        TargetCount = pool.Targets.Count,
+                        Held = heldByPool,
+                        Remaining = pool.Remaining,
+                        FullCount = pool.FullCount,
+                        Fir = pool.Fir,
+                        Now = pool.Now,
+                    });
                 }
             }
 
@@ -307,16 +316,7 @@ namespace AllQuestsCheckmarks.Helpers
                 {
                     Acc acc = AccFor(new MongoID(hItems[i]));
                     acc.Hideout = true;
-                    EReason source = Source(!hFuture[i], true);
-
-                    if (hFir[i])
-                    {
-                        if (hFuture[i]) { acc.FirLater += hQty[i]; acc.FirLaterSrc |= source; } else { acc.FirNow += hQty[i]; acc.FirNowSrc |= source; }
-                    }
-                    else
-                    {
-                        if (hFuture[i]) { acc.NonFirLater += hQty[i]; acc.NonFirLaterSrc |= source; } else { acc.NonFirNow += hQty[i]; acc.NonFirNowSrc |= source; }
-                    }
+                    (hFir[i] ? acc.FirDemand : acc.NonFirDemand)[hFuture[i] ? HideoutLater : HideoutNow] += hQty[i];
                 }
             }
 
@@ -329,40 +329,18 @@ namespace AllQuestsCheckmarks.Helpers
                 int heldFir = own?.Fir ?? 0;
                 int heldNonFir = own?.NonFir ?? 0;
 
-                // FiR copies fill FiR needs first (now before later); what is left over, with the non-FiR copies, fills the non-FiR needs
-                int shortFirNow = Math.Max(0, acc.FirNow - heldFir);
-                int spare = Math.Max(0, heldFir - acc.FirNow);
-                int shortFirLater = Math.Max(0, acc.FirLater - spare);
-                spare = Math.Max(0, spare - acc.FirLater);
+                // FiR copies fill FiR needs first; what is left over, with the non-FiR copies, fills the non-FiR needs.
+                // Within a kind the needs are filled in the order of the sources, so what stays missing is the later needs
+                int[] firMissing = Unmet(acc.FirDemand, heldFir, out int spareFir);
+                int[] nonFirMissing = Unmet(acc.NonFirDemand, heldNonFir + spareFir, out _);
 
-                int pool = heldNonFir + spare;
-                int shortNonFirNow = Math.Max(0, acc.NonFirNow - pool);
-                pool = Math.Max(0, pool - acc.NonFirNow);
-                int shortNonFirLater = Math.Max(0, acc.NonFirLater - pool);
+                for (int i = 0; i < Sources; i++)
+                {
+                    firMissing[i] += acc.PoolFirShort[i];
+                    nonFirMissing[i] += acc.PoolNonFirShort[i];
+                }
 
                 bool buyable = IsBuyable(id);
-
-                shortFirNow += acc.PoolFirNow;
-                shortFirLater += acc.PoolFirLater;
-                shortNonFirNow += acc.PoolNonFirNow;
-                shortNonFirLater += acc.PoolNonFirLater;
-
-                bool firNow = shortFirNow > 0;
-                bool firLater = shortFirLater > 0;
-                bool nonFirNow = shortNonFirNow > 0;
-                bool nonFirLater = shortNonFirLater > 0;
-
-                // what is missing, and what for: FiR gaps (and non-FiR gaps that can't be bought) are for looting, the rest for buying
-                EReason lootReasons = (firNow ? acc.FirNowSrc : 0) | (firLater ? acc.FirLaterSrc : 0)
-                    | (!buyable && nonFirNow ? acc.NonFirNowSrc : 0) | (!buyable && nonFirLater ? acc.NonFirLaterSrc : 0);
-                int lootCount = shortFirNow + shortFirLater + (buyable ? 0 : shortNonFirNow + shortNonFirLater);
-                EReason buyReasons = buyable ? (nonFirNow ? acc.NonFirNowSrc : 0) | (nonFirLater ? acc.NonFirLaterSrc : 0) : 0;
-                int buyCount = buyable ? shortNonFirNow + shortNonFirLater : 0;
-
-                // in raid: loot it when FiR copies are short, or when it can't be bought; out of raid: buy it when it can be
-                EStrength loot = firNow || !buyable && nonFirNow ? EStrength.Now
-                    : firLater || !buyable && nonFirLater ? EStrength.Later : EStrength.None;
-                EStrength buy = buyable && nonFirNow ? EStrength.Now : buyable && nonFirLater ? EStrength.Later : EStrength.None;
 
                 ItemNeed need = new()
                 {
@@ -370,14 +348,18 @@ namespace AllQuestsCheckmarks.Helpers
                     CollectorMissing = acc.Collector && heldFir < 1,
                     FromQuest = acc.Quest,
                     FromHideout = acc.Hideout,
-                    Loot = loot,
-                    Buy = buy,
-                    LootCount = lootCount,
-                    LootReasons = lootReasons,
-                    BuyCount = buyCount,
-                    BuyReasons = buyReasons,
                     HandInCount = acc.HandInCount,
                 };
+
+                for (int i = 0; i < Sources; i++)
+                {
+                    // in raid: loot it when FiR copies are short, or when it can't be bought; out of raid: buy it when it can be
+                    need.LootBy[i] = firMissing[i] + (buyable ? 0 : nonFirMissing[i]);
+                    need.BuyBy[i] = buyable ? nonFirMissing[i] : 0;
+                }
+
+                need.Loot = Strength(need.LootBy);
+                need.Buy = Strength(need.BuyBy);
 
                 if (need.HandIn || need.CollectorMissing || need.Loot != EStrength.None || need.Buy != EStrength.None)
                 {
@@ -389,8 +371,14 @@ namespace AllQuestsCheckmarks.Helpers
             foreach (KeyValuePair<MongoID, ItemNeed> entry in _needs)
             {
                 ItemNeed n = entry.Value;
-                hash = unchecked(hash + entry.Key.GetHashCode() * 31
-                    + ((int)n.Loot * 7 + (int)n.Buy * 11 + n.LootCount * 13 + n.BuyCount * 17 + n.HandInCount * 19 + (n.CollectorMissing ? 23 : 0) + (n.HandIn ? 29 : 0)) * 37);
+                int sum = n.HandInCount * 19 + (n.CollectorMissing ? 23 : 0) + (n.HandIn ? 29 : 0);
+
+                for (int i = 0; i < Sources; i++)
+                {
+                    sum += (n.LootBy[i] * 7 + n.BuyBy[i] * 11) * (i + 1);
+                }
+
+                hash = unchecked(hash + entry.Key.GetHashCode() * 31 + sum * 37);
             }
 
             if (hash != _lastHash)
@@ -400,6 +388,32 @@ namespace AllQuestsCheckmarks.Helpers
             }
 
             Plugin.LogDebug($"Needs snapshot built in {watch.ElapsedMilliseconds} ms (in raid: {inRaid}): {_needs.Count} items, {pools.Count} quest conditions, changed: {Version}");
+        }
+
+        // How much of each need is not covered when `available` copies are used up in the order of the sources
+        private static int[] Unmet(int[] demand, int available, out int spare)
+        {
+            int[] unmet = new int[Sources];
+
+            for (int i = 0; i < Sources; i++)
+            {
+                int take = Math.Min(demand[i], available);
+                available -= take;
+                unmet[i] = demand[i] - take;
+            }
+
+            spare = available;
+            return unmet;
+        }
+
+        private static EStrength Strength(int[] missing)
+        {
+            if (missing[QuestNow] > 0 || missing[HideoutNow] > 0)
+            {
+                return EStrength.Now;
+            }
+
+            return missing[QuestLater] > 0 || missing[HideoutLater] > 0 ? EStrength.Later : EStrength.None;
         }
 
         // Same quest filters as the checkmarks (Collector, loyalty regain)

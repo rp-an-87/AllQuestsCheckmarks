@@ -56,21 +56,38 @@ namespace AllQuestsCheckmarks.Patches
             return text.Replace(ActionToken, action.Length > 0 ? "\n" + TooltipSeparator.Line + "\n" + action : "");
         }
 
-        private static string Reasons(NeedsSnapshot.EReason reasons)
+        // The checklist: only what you can act on, one line per source, current needs bright and future ones dim.
+        // order of the lines: current upgrade, current quest, future upgrade, future quest
+        private static readonly int[] _lineOrder = [NeedsSnapshot.HideoutNow, NeedsSnapshot.QuestNow, NeedsSnapshot.HideoutLater, NeedsSnapshot.QuestLater];
+
+        private static string SourceName(int source)
         {
-            List<string> names = [];
-
-            if (reasons.HasFlag(NeedsSnapshot.EReason.QuestNow)) names.Add("aqc_reason_quest_now".Localized(null));
-            if (reasons.HasFlag(NeedsSnapshot.EReason.HideoutNow)) names.Add("aqc_reason_hideout_now".Localized(null));
-            if (reasons.HasFlag(NeedsSnapshot.EReason.QuestLater)) names.Add("aqc_reason_quest_later".Localized(null));
-            if (reasons.HasFlag(NeedsSnapshot.EReason.HideoutLater)) names.Add("aqc_reason_hideout_later".Localized(null));
-
-            return names.Count switch
+            return (source switch
             {
-                0 => "",
-                1 => names[0],
-                _ => string.Join(", ", names.GetRange(0, names.Count - 1)) + "aqc_and".Localized(null) + names[names.Count - 1],
-            };
+                NeedsSnapshot.HideoutNow => "aqc_src_hideout_now",
+                NeedsSnapshot.QuestNow => "aqc_src_quest_now",
+                NeedsSnapshot.HideoutLater => "aqc_src_hideout_later",
+                _ => "aqc_src_quest_later",
+            }).Localized(null);
+        }
+
+        private static string Checklist(string headerKey, int[] counts, string unit)
+        {
+            string result = "";
+
+            foreach (int source in _lineOrder)
+            {
+                if (counts[source] <= 0)
+                {
+                    continue;
+                }
+
+                bool now = source == NeedsSnapshot.QuestNow || source == NeedsSnapshot.HideoutNow;
+                string color = now ? "#E6E6E6" : "#8F8F8F";
+                result += $"\n<size=85%><color={color}>  · {counts[source]}{unit} {string.Format("aqc_for".Localized(null), SourceName(source))}</color></size>";
+            }
+
+            return result.Length == 0 ? "" : "<size=85%><color=#B8B8B8>" + headerKey.Localized(null) + "</color></size>" + result;
         }
 
         // What to do with the item right now: loot it in raid, hand in / buy it out of raid
@@ -83,26 +100,29 @@ namespace AllQuestsCheckmarks.Patches
 
             if (NeedsSnapshot.InRaid)
             {
+                string loot = Checklist("aqc_header_loot", need.LootBy, " " + "aqc_fir".Localized(null));
+
                 if (need.CollectorMissing)
                 {
-                    return "aqc_action_collector".Localized(null);
+                    loot = ("aqc_action_collector".Localized(null) + (loot.Length > 0 ? "\n" : "")) + loot;
                 }
 
-                return need.LootCount > 0 ? string.Format("aqc_action_loot".Localized(null), need.LootCount, Reasons(need.LootReasons)) : "";
+                return loot;
             }
+
+            string action = "";
 
             if (need.HandIn && need.HandInCount > 0)
             {
-                return string.Format("aqc_action_handin".Localized(null), need.HandInCount, Reasons(NeedsSnapshot.EReason.QuestNow));
+                int[] handIn = new int[NeedsSnapshot.Sources];
+                handIn[NeedsSnapshot.QuestNow] = need.HandInCount;
+                action = Checklist("aqc_header_handin", handIn, "");
             }
 
-            if (need.BuyCount > 0)
-            {
-                return string.Format("aqc_action_buy".Localized(null), need.BuyCount, Reasons(need.BuyReasons));
-            }
+            string buy = Checklist("aqc_header_buy", need.BuyBy, "");
 
-            // FiR needs can't be bought: out of raid they are still waiting to be found
-            return need.LootCount > 0 ? string.Format("aqc_action_find".Localized(null), need.LootCount, Reasons(need.LootReasons)) : "";
+            // FiR needs can't be bought and are only worth knowing about in a raid
+            return action.Length > 0 && buy.Length > 0 ? action + "\n" + buy : action + buy;
         }
 
         private static string? _pending;
