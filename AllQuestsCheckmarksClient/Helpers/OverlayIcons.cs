@@ -5,7 +5,7 @@ namespace AllQuestsCheckmarks.Helpers
 {
     /// <summary>
     /// The icons the game has no picture for, drawn once in code as white glyphs (so they take a color like the game's own icons):
-    /// a clock (needed later), a hooded figure (Collector) and an arrow into a tray (hand in).
+    /// a clock (needed later), a star (Collector) and an arrow into a tray (hand in, only a fallback).
     /// </summary>
     internal static class OverlayIcons
     {
@@ -136,14 +136,20 @@ namespace AllQuestsCheckmarks.Helpers
             s.Add(Circle(32, 32, 4));
         }
 
-        // a jagged cloak, a pointed hood, a dark angular opening with two narrow angry eyes
+        // a five pointed star (the Collector marker; it takes the Collector color)
         private static void DrawCollector(Surface s)
         {
-            s.Add(Polygon(6, 3, 14, 14, 20, 3, 26, 13, 32, 2, 38, 13, 44, 3, 50, 14, 58, 3, 50, 30, 14, 30));
-            s.Add(Polygon(32, 63, 50, 34, 46, 26, 18, 26, 14, 34));
-            s.Cut(Polygon(24.5f, 47, 32, 34, 39.5f, 47, 35.5f, 54.5f, 28.5f, 54.5f));
-            s.Add(Polygon(26, 49.5f, 31.5f, 46.5f, 31.5f, 49, 27, 51.5f));
-            s.Add(Polygon(38, 49.5f, 32.5f, 46.5f, 32.5f, 49, 37, 51.5f));
+            float[] points = new float[20];
+
+            for (int i = 0; i < 10; i++)
+            {
+                float angle = Mathf.PI / 2f + i * Mathf.PI / 5f;
+                float radius = i % 2 == 0 ? 30f : 12.5f;
+                points[i * 2] = 32f + radius * Mathf.Cos(angle);
+                points[i * 2 + 1] = 33f + radius * Mathf.Sin(angle);
+            }
+
+            s.Add(Polygon(points));
         }
 
         // an arrow down into a tray
