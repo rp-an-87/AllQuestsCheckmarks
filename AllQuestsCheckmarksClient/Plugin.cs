@@ -55,6 +55,11 @@ namespace AllQuestsCheckmarks
             new CheckmarkHoverPatch().Enable();
             new SimpleTooltipShowPatch().Enable();
             NeedsOverlay.EnablePatches();
+
+            if (Settings.ShowDebug!.Value)
+            {
+                Patches.FrameProbes.EnablePatches();
+            }
             new UpdateApplicationLanguagePatch().Enable();
 
             LogSource.LogInfo($"AllQuestCheckmarks by ZGFueDkx version {Info.Metadata.Version} started");
@@ -70,10 +75,11 @@ namespace AllQuestsCheckmarks
             if (frame > 50f)
             {
                 float now = UnityEngine.Time.realtimeSinceStartup;
-                LogSlow($"frame {frame:0} ms at {now:0.0} s, of which this mod {FrameMs:0.0} ms; last item hovered: {Patches.ItemHoverTooltip.LastHoverItem} {now - Patches.ItemHoverTooltip.LastHoverTime:0.0} s ago");
+                LogSlow($"frame {frame:0} ms at {now:0.0} s, of which this mod {FrameMs:0.0} ms; tooltip show {Patches.FrameProbes.ShowMs:0.0} ms, tooltip update {Patches.FrameProbes.UpdateMs:0.0} ms, pointer enter {Patches.FrameProbes.EnterMs:0.0} ms; last item hovered: {Patches.ItemHoverTooltip.LastHoverItem} {now - Patches.ItemHoverTooltip.LastHoverTime:0.0} s ago");
             }
 
             FrameMs = 0;
+            Patches.FrameProbes.Reset();
         }
 
         // Slow paths are reported as warnings so they show in LogOutput.log without any setting; at most one every half second
