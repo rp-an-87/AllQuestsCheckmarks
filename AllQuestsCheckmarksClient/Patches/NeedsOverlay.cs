@@ -54,6 +54,9 @@ namespace AllQuestsCheckmarks.Patches
             public Vector3 IconScale;
         }
 
+        // the requirement behind each requirement panel of the upgrade screen
+        private static readonly ConditionalWeakTable<EFT.Hideout.ItemRequirementPanel, EFT.Hideout.ItemRequirement> _requirements = new();
+
         private static readonly ConditionalWeakTable<WishlistGridView, State> _states = new();
         private static readonly HashSet<WishlistGridView> _views = [];
         private static readonly Queue<WishlistGridView> _queue = new();
@@ -70,6 +73,17 @@ namespace AllQuestsCheckmarks.Patches
             new OverlayRemovePatch().Enable();
             new OverlayGroupPatch().Enable();
             new InventoryChangedPatch().Enable();
+            new RequirementShowPatch().Enable();
+        }
+
+        public static void OnRequirementShown(EFT.Hideout.ItemRequirementPanel panel, EFT.Hideout.Requirement requirement)
+        {
+            _requirements.Remove(panel);
+
+            if (requirement is EFT.Hideout.ItemRequirement itemRequirement)
+            {
+                _requirements.Add(panel, itemRequirement);
+            }
         }
 
         // ---------------------------------------------------------------- drawing queue
@@ -240,6 +254,12 @@ namespace AllQuestsCheckmarks.Patches
                 return false;
             }
 
+            // an upgrade's requirement icon: the overlay is about that requirement only, not about every upgrade and quest the item is needed for
+            if (inRequirements)
+            {
+                return TryGetRequirementStyle(view, out color, out strength, out group, out icon, out iconOnly, out isLater);
+            }
+
             ItemView? itemView = view.GetComponentInParent<ItemView>();
             EItemViewType? viewType = itemView?.ItemContext?.ViewType;
 
@@ -353,6 +373,72 @@ namespace AllQuestsCheckmarks.Patches
 
             group = fromQuest && fromHideout ? EWishlistGroup.Other : fromQuest ? EWishlistGroup.Quests : EWishlistGroup.Hideout;
             icon = fromQuest && fromHideout ? EIcon.Both : EIcon.Group;
+            return true;
+        }
+
+        private static bool TryGetRequirementStyle(WishlistGridView view, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly, out bool isLater)
+        {
+            color = default;
+            strength = 1f;
+            group = EWishlistGroup.Hideout;
+            icon = EIcon.Group;
+            iconOnly = false;
+            isLater = false;
+
+            EFT.Hideout.ItemRequirementPanel? panel = view.GetComponentInParent<EFT.Hideout.ItemRequirementPanel>();
+
+            if (panel == null || !_requirements.TryGetValue(panel, out EFT.Hideout.ItemRequirement requirement))
+            {
+                return false;
+            }
+
+            // what is still missing for THIS upgrade (the game's own count of what you hold)
+            int missing = requirement.IntCount - Mathf.Clamp(requirement.UserItemsCount, 0, requirement.IntCount);
+
+            if (missing <= 0)
+            {
+                return false;
+            }
+
+            bool inRaid = NeedsSnapshot.InRaid;
+            bool buyable = NeedsSnapshot.IsBuyable(new MongoID(requirement.TemplateId));
+
+            if (requirement.IsSpawnedInSession)
+            {
+                // found in raid can't be bought: something to loot in raid, nothing to do out of raid
+                if (!inRaid)
+                {
+                    return false;
+                }
+
+                color = Settings.OverlayLootColor!.GetValue();
+                return true;
+            }
+
+            if (!inRaid)
+            {
+                if (!buyable)
+                {
+                    return false;
+                }
+
+                color = Settings.OverlayBuyColor!.GetValue();
+                return true;
+            }
+
+            if (!buyable)
+            {
+                color = Settings.OverlayLootColor!.GetValue();
+                return true;
+            }
+
+            if (!Settings.RaidBuyIcon!.Value)
+            {
+                return false;
+            }
+
+            color = Settings.OverlayBuyColor!.GetValue();
+            iconOnly = true;
             return true;
         }
 
@@ -718,6 +804,21 @@ namespace AllQuestsCheckmarks.Patches
     }
 
     // The same event Wishlist Extended uses to know the stash changed
+    // Remembers which requirement each requirement panel of the upgrade screen shows
+    internal class RequirementShowPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod()
+        {
+            return AccessTools.Method(typeof(EFT.Hideout.ItemRequirementPanel), nameof(EFT.Hideout.ItemRequirementPanel.Show));
+        }
+
+        [PatchPostfix]
+        private static void Postfix(EFT.Hideout.ItemRequirementPanel __instance, EFT.Hideout.Requirement requirement)
+        {
+            NeedsOverlay.OnRequirementShown(__instance, requirement);
+        }
+    }
+
     internal class InventoryChangedPatch : ModulePatch
     {
         protected override MethodBase GetTargetMethod()

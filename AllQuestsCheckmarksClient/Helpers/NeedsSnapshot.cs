@@ -571,7 +571,7 @@ namespace AllQuestsCheckmarks.Helpers
         }
 
         // Can it be bought? On the flea market (not banned), or sold by a trader
-        private static bool IsBuyable(MongoID id)
+        public static bool IsBuyable(MongoID id)
         {
             if (_buyable.TryGetValue(id, out bool cached))
             {
