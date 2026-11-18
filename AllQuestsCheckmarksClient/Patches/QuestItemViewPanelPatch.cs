@@ -126,6 +126,10 @@ namespace AllQuestsCheckmarks.Patches
             {
                 string activeColor = Settings.ActiveQuestTextColor!.GetHexColor(!useCustomTextColors);
 
+                // quests with a count several items share go last, grouped
+                System.Text.StringBuilder activeOwn = new();
+                System.Text.StringBuilder activeShared = new();
+
                 foreach (KeyValuePair<MongoID, QuestsHelper.CurrentQuest> keyValuePair in activeQuests)
                 {
                     keyValuePair.Deconstruct(out _, out QuestsHelper.CurrentQuest quest);
@@ -143,6 +147,7 @@ namespace AllQuestsCheckmarks.Patches
                         continue;
                     }
 
+                    int segmentStart = activeQuestsTooltip.Length;
                     activeQuestsTooltip += $"\n{indent}<color={activeColor}>{quest.Template.Name}</color>: ";
 
                     if (quest.Condition is ConditionHandoverItem condition
@@ -172,7 +177,12 @@ namespace AllQuestsCheckmarks.Patches
                     }
 
                     activeQuestsTooltip += PoolNote(quest.Template.Id);
+
+                    (IsPooled(quest.Template.Id) ? activeShared : activeOwn).Append(activeQuestsTooltip, segmentStart, activeQuestsTooltip.Length - segmentStart);
+                    activeQuestsTooltip = activeQuestsTooltip.Substring(0, segmentStart);
                 }
+
+                activeQuestsTooltip += activeOwn.ToString() + activeShared.ToString();
             }
 
             foreach (KeyValuePair<MongoID, QuestsHelper.CurrentQuest> keyValuePair in fulfilled)
