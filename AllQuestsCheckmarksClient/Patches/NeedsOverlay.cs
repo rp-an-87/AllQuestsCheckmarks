@@ -233,7 +233,9 @@ namespace AllQuestsCheckmarks.Patches
             group = EWishlistGroup.Other;
 
             // the requirement icons of a hideout upgrade already say what is needed
-            if (view.GetComponentInParent<EFT.Hideout.ItemRequirementPanel>() != null)
+            bool inRequirements = view.GetComponentInParent<EFT.Hideout.ItemRequirementPanel>() != null;
+
+            if (inRequirements && !Settings.OverlayInHideoutRequirements!.Value)
             {
                 return false;
             }
@@ -252,7 +254,7 @@ namespace AllQuestsCheckmarks.Patches
                 return false;
             }
 
-            if (viewType == EItemViewType.Hideout || !NeedsSnapshot.TryGet(_templateRef(view), out NeedsSnapshot.ItemNeed need))
+            if (viewType == EItemViewType.Hideout && !inRequirements && !Settings.OverlayInHideoutRequirements!.Value || !NeedsSnapshot.TryGet(_templateRef(view), out NeedsSnapshot.ItemNeed need))
             {
                 return false;
             }

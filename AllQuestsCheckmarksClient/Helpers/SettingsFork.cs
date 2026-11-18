@@ -30,6 +30,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? RaidBuyIcon;
         public static ConfigEntry<bool>? KeepIcon;
         public static ConfigEntry<bool>? OverlayDashedLater;
+        public static ConfigEntry<bool>? OverlayInHideoutRequirements;
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<bool>? VanillaCheckmarkInHideout;
 
@@ -135,6 +136,13 @@ namespace AllQuestsCheckmarks.Helpers
                 "Dashed border for later needs",
                 true,
                 "Whether or not items needed only later get a dashed border instead of the solid one"
+            );
+
+            OverlayInHideoutRequirements = needs.BindConfig(
+                "Overlays on hideout requirement items",
+                true,
+                "Whether or not the item icons of a hideout upgrade's requirements (the construction requirements screen) get the overlay too, " +
+                    "for example the green can buy overlay on a requirement you do not have yet"
             );
 
             ClassicCheckmarks = needs.BindConfig(
