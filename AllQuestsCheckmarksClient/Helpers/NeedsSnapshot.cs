@@ -62,6 +62,11 @@ namespace AllQuestsCheckmarks.Helpers
             public readonly int[] FirBy = new int[Sources];
             public readonly int[] UnbuyableBy = new int[Sources];
 
+            // the same, only for needs that are this item's own (not a quest condition several items share): what is certain for this item
+            public readonly int[] FixedFirBy = new int[Sources];
+            public readonly int[] FixedBuyBy = new int[Sources];
+            public readonly int[] FixedUnbuyableBy = new int[Sources];
+
             // copies you hold that are earmarked for a need (not the ones for a quest you can hand in right now): found in raid needs, and needs that take any copy
             public readonly int[] KeepFirBy = new int[Sources];
             public readonly int[] KeepAnyBy = new int[Sources];
@@ -426,14 +431,17 @@ namespace AllQuestsCheckmarks.Helpers
                         if (need.Fir)
                         {
                             item.FirBy[need.Source] += need.Missing;
+                            if (!shared) item.FixedFirBy[need.Source] += need.Missing;
                         }
                         else if (IsBuyable(target))
                         {
                             item.BuyBy[need.Source] += need.Missing;
+                            if (!shared) item.FixedBuyBy[need.Source] += need.Missing;
                         }
                         else
                         {
                             item.UnbuyableBy[need.Source] += need.Missing;
+                            if (!shared) item.FixedUnbuyableBy[need.Source] += need.Missing;
                         }
                     }
 

@@ -118,7 +118,25 @@ namespace AllQuestsCheckmarks.Patches
         // the header gets the color of the overlay it belongs to
         private static string Hex(UnityEngine.Color color) => "#" + UnityEngine.ColorUtility.ToHtmlStringRGB(color);
 
-        private static string Checklist(string headerKey, int[] counts, string unit, UnityEngine.Color headerColor)
+        // For needs that several items share, only the item's own needs are certain: those are listed, with "(at least)" when more is asked of the group
+        private static int[] Certain(int[] all, int[] own, out string suffix)
+        {
+            suffix = "";
+
+            if (own.Sum() == 0)
+            {
+                return all;
+            }
+
+            if (all.Sum() > own.Sum())
+            {
+                suffix = " <color=#8A8A8A>" + "aqc_stock_at_least".Localized(null) + "</color>";
+            }
+
+            return own;
+        }
+
+        private static string Checklist(string headerKey, int[] counts, string unit, UnityEngine.Color headerColor, string headerSuffix = "")
         {
             string result = "";
 
@@ -134,7 +152,7 @@ namespace AllQuestsCheckmarks.Patches
                 result += $"\n<size=85%><color={color}>  · {NumberFormat.Compact(counts[source])}{unit} {string.Format("aqc_for".Localized(null), SourceName(source))}</color></size>";
             }
 
-            return result.Length == 0 ? "" : "<size=85%><color=" + Hex(headerColor) + ">" + headerKey.Localized(null) + "</color></size>" + result;
+            return result.Length == 0 ? "" : "<size=85%><color=" + Hex(headerColor) + ">" + headerKey.Localized(null) + "</color>" + headerSuffix + "</size>" + result;
         }
 
         // What to do with the item right now. Out of raid: hand in, buy, and what still has to be found in a raid. In raid: what to get
@@ -171,12 +189,15 @@ namespace AllQuestsCheckmarks.Patches
                 }
 
                 blocks.Add(Checklist("aqc_header_keep", keep, "", Settings.OverlayKeepColor!.GetValue()));
-                blocks.Add(Checklist("aqc_header_buy", need.BuyBy, "", Settings.OverlayBuyColor!.GetValue()));
+                int[] buy = Certain(need.BuyBy, need.FixedBuyBy, out string buySuffix);
+                blocks.Add(Checklist("aqc_header_buy", buy, "", Settings.OverlayBuyColor!.GetValue(), buySuffix));
             }
 
             // found in raid needs can't be bought: they are the same in a raid and in the hideout
-            blocks.Add(Checklist("aqc_header_fir", need.FirBy, "", Settings.OverlayLootColor!.GetValue()));
-            blocks.Add(Checklist("aqc_header_unbuyable", need.UnbuyableBy, "", Settings.OverlayLootColor!.GetValue()));
+            int[] fir = Certain(need.FirBy, need.FixedFirBy, out string firSuffix);
+            blocks.Add(Checklist("aqc_header_fir", fir, "", Settings.OverlayLootColor!.GetValue(), firSuffix));
+            int[] unbuyable = Certain(need.UnbuyableBy, need.FixedUnbuyableBy, out string unbuyableSuffix);
+            blocks.Add(Checklist("aqc_header_unbuyable", unbuyable, "", Settings.OverlayLootColor!.GetValue(), unbuyableSuffix));
 
             return string.Join("\n", blocks.Where(b => b.Length > 0));
         }
