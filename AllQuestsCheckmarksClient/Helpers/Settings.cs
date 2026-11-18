@@ -33,6 +33,8 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? ClassicCheckmarks;
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
+        public static ConfigEntry<bool>? OverlayDashedLater;
+        public static ConfigEntry<float>? OverlayDashedStrength;
         public static ConfigEntry<bool>? OverlayIconMatchColor;
         public static ConfigEntry<int>? OverlayBorderThickness;
         public static ConfigEntry<EOverlayPart>? OverlayBorderStyle;
@@ -205,6 +207,19 @@ namespace AllQuestsCheckmarks.Helpers
                 "Overlay icon in the overlay color",
                 true,
                 "Whether the overlay icon (and the clock for later needs) has the same color as the overlay border, so it reads as one thing. Off: white"
+            );
+
+            OverlayDashedLater = general.BindConfig(
+                "Dashed border for later needs",
+                true,
+                "Whether items needed only later get a dashed border (strong, but clearly different from the solid one) instead of a weaker solid one"
+            );
+
+            OverlayDashedStrength = general.BindConfig(
+                "Dashed border strength",
+                0.9f,
+                "How visible the dashed border of later needs is (1 = fully)",
+                acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
             );
 
             OverlayBorderThickness = general.BindConfig(

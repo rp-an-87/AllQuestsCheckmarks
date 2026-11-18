@@ -49,6 +49,8 @@ namespace AllQuestsCheckmarks.Patches
             public readonly Dictionary<Graphic, Color> Colors = [];
             public readonly Dictionary<Image, Sprite> Sprites = [];
             public Image? Frame;
+            public GameObject? DashRoot;
+            public readonly List<Image> Dashes = [];
             public Image? Clock;
             public Image? Fill;
             public bool IconSaved;
@@ -339,7 +341,9 @@ namespace AllQuestsCheckmarks.Patches
         {
             view.SetElementsActive(true);
 
-            Settings.EOverlayPart borderStyle = Settings.OverlayBorderStyle!.Value;
+            // a need for later: a dashed border instead of the solid one
+            bool dashed = strength < 1f && Settings.OverlayDashedLater!.Value;
+            Settings.EOverlayPart borderStyle = dashed ? Settings.EOverlayPart.Off : Settings.OverlayBorderStyle!.Value;
             Settings.EOverlayPart glowStyle = Settings.OverlayGlowStyle!.Value;
             float borderAlpha = strength * Settings.OverlayBorderMultiplier!.Value;
             float glowAlpha = strength * Settings.OverlayGlowMultiplier!.Value;
@@ -347,6 +351,8 @@ namespace AllQuestsCheckmarks.Patches
             // border and glow: the game's own (tinted), ours, or none
             NativePart(view._border, state, borderStyle == Settings.EOverlayPart.Native, color, borderAlpha);
             NativePart(view._glow, state, glowStyle == Settings.EOverlayPart.Native, color, glowAlpha);
+
+            ShowDashed(view, state, dashed, color);
 
             if (borderStyle == Settings.EOverlayPart.Own || glowStyle == Settings.EOverlayPart.Own)
             {
@@ -445,12 +451,17 @@ namespace AllQuestsCheckmarks.Patches
                 state.Clock = image;
             }
 
+            // the same size as the icon, right next to it (the icon's size is read from its sprite when its rectangle is not laid out yet)
             RectTransform iconRect = (RectTransform)view._icon.transform;
-            float side = Mathf.Max(8f, Mathf.Min(iconRect.rect.width, iconRect.rect.height) * 0.6f);
-            state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
+            float side = Mathf.Min(iconRect.rect.width, iconRect.rect.height);
 
-            // tucked against the corner of the icon (overlapping it a little), so the two read as one
-            state.Clock.rectTransform.anchoredPosition = new Vector2(-side * 0.3f, 0f);
+            if (side < 1f)
+            {
+                side = view._icon.sprite != null ? Mathf.Min(view._icon.sprite.rect.width, view._icon.sprite.rect.height) : 22f;
+            }
+
+            state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
+            state.Clock.rectTransform.anchoredPosition = new Vector2(2f, 0f);
             state.Clock.color = color;
             state.Clock.gameObject.SetActive(true);
         }
@@ -697,6 +708,122 @@ namespace AllQuestsCheckmarks.Patches
             return result;
         }
 
+        private static Sprite? _dashAcross;
+        private static Sprite? _dashDown;
+
+        // a short dash and a short gap, repeated along the edge
+        private static Sprite DashSprite(bool horizontal)
+        {
+            if ((horizontal ? _dashAcross : _dashDown) is Sprite cached)
+            {
+                return cached;
+            }
+
+            int width = horizontal ? 12 : 2;
+            int height = horizontal ? 2 : 12;
+            Texture2D texture = new(width, height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int along = horizontal ? x : y;
+                    texture.SetPixel(x, y, along < 8 ? Color.white : Color.clear);
+                }
+            }
+
+            texture.Apply();
+            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+
+            if (horizontal)
+            {
+                _dashAcross = sprite;
+            }
+            else
+            {
+                _dashDown = sprite;
+            }
+
+            return sprite;
+        }
+
+        // The dashed border: four edges of repeated dashes, in the same place as the game's own border
+        private static void ShowDashed(WishlistGridView view, State state, bool show, Color color)
+        {
+            if (!show)
+            {
+                if (state.DashRoot != null)
+                {
+                    state.DashRoot.SetActive(false);
+                }
+
+                return;
+            }
+
+            if (state.DashRoot == null)
+            {
+                Transform parent = view._border != null ? view._border.transform.parent : view.transform;
+                RectTransform? source = view._border != null ? view._border.transform as RectTransform : null;
+
+                GameObject root = new("AQC_Dashed", typeof(RectTransform));
+                root.transform.SetParent(parent, false);
+                RectTransform rootRect = (RectTransform)root.transform;
+
+                if (source != null)
+                {
+                    rootRect.anchorMin = source.anchorMin;
+                    rootRect.anchorMax = source.anchorMax;
+                    rootRect.pivot = source.pivot;
+                    rootRect.offsetMin = source.offsetMin;
+                    rootRect.offsetMax = source.offsetMax;
+                }
+                else
+                {
+                    rootRect.anchorMin = Vector2.zero;
+                    rootRect.anchorMax = Vector2.one;
+                    rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
+                }
+
+                // top, bottom, left, right
+                state.Dashes.Add(NewDashEdge(root.transform, true, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)));
+                state.Dashes.Add(NewDashEdge(root.transform, true, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0)));
+                state.Dashes.Add(NewDashEdge(root.transform, false, new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f)));
+                state.Dashes.Add(NewDashEdge(root.transform, false, new Vector2(1, 0), new Vector2(1, 1), new Vector2(1, 0.5f)));
+                state.DashRoot = root;
+            }
+
+            float thickness = Mathf.Max(2, Settings.OverlayBorderThickness!.Value);
+            Color tint = new(color.r, color.g, color.b, Mathf.Clamp01(Settings.OverlayDashedStrength!.Value));
+
+            for (int i = 0; i < state.Dashes.Count; i++)
+            {
+                Image edge = state.Dashes[i];
+                edge.color = tint;
+                edge.pixelsPerUnitMultiplier = 2f / thickness;
+                edge.rectTransform.sizeDelta = i < 2 ? new Vector2(0, thickness) : new Vector2(thickness, 0);
+            }
+
+            state.DashRoot.SetActive(true);
+        }
+
+        private static Image NewDashEdge(Transform parent, bool horizontal, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot)
+        {
+            GameObject go = new(horizontal ? "AQC_DashAcross" : "AQC_DashDown", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+
+            RectTransform rect = (RectTransform)go.transform;
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.pivot = pivot;
+            rect.anchoredPosition = Vector2.zero;
+
+            Image image = go.GetComponent<Image>();
+            image.sprite = DashSprite(horizontal);
+            image.type = Image.Type.Tiled;
+            image.raycastTarget = false;
+            return image;
+        }
+
         private static void EnsureFrame(WishlistGridView view, State state)
         {
             if (state.Frame != null && state.Fill != null)
@@ -823,6 +950,11 @@ namespace AllQuestsCheckmarks.Patches
             if (state.Clock != null)
             {
                 state.Clock.gameObject.SetActive(false);
+            }
+
+            if (state.DashRoot != null)
+            {
+                state.DashRoot.SetActive(false);
             }
 
             if (state.Frame != null)
