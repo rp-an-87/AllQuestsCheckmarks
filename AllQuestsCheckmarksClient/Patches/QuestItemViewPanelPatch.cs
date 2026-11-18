@@ -96,7 +96,7 @@ namespace AllQuestsCheckmarks.Patches
 
             bool showNonFir = Settings.IncludeNonFir!.Value;
             StashHelper.ItemsCount inStash = NeedsSnapshot.Held(item.TemplateId);
-            string stashLine = string.Format("aqc_in_stash".Localized(null), inStash.Total, inStash.Fir);
+            string stashLine = string.Format("aqc_in_stash".Localized(null), NumberFormat.Compact(inStash.Total), NumberFormat.Compact(inStash.Fir));
 
             bool neededForActive = false;
             bool neededForFuture = false;
@@ -172,7 +172,7 @@ namespace AllQuestsCheckmarks.Patches
                             if (!IsPooled(quest.Template.Id)) totalNeededNonFir += (int)condition.value - counter.Value;
                         }
 
-                        activeQuestsTooltip += $"{counter.Value}/{condition.value}";
+                        activeQuestsTooltip += $"{NumberFormat.Compact(counter.Value)}/{NumberFormat.Compact((int)condition.value)}";
 
                         if (showNonFir)
                         {
@@ -181,7 +181,7 @@ namespace AllQuestsCheckmarks.Patches
                     }
                     else
                     {
-                        activeQuestsTooltip += $"0/{quest.Condition.value}";
+                        activeQuestsTooltip += $"0/{NumberFormat.Compact((int)quest.Condition.value)}";
                     }
 
                     activeQuestsTooltip += PoolNote(quest.Template.Id);
@@ -253,7 +253,7 @@ namespace AllQuestsCheckmarks.Patches
                         }
                     }
 
-                    futureQuestsTooltip += $"\n{indent}<color={futureColor}>{questName}</color>: {quest.Value.Count.Count}";
+                    futureQuestsTooltip += $"\n{indent}<color={futureColor}>{questName}</color>: {NumberFormat.Compact(quest.Value.Count.Count)}";
 
                     if (showNonFir)
                     {
@@ -341,7 +341,7 @@ namespace AllQuestsCheckmarks.Patches
             if (pools.Count == 0 && (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0))
             {
                 totalLine = string.Format((showNonFirTotal ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
-                       totalNeededFir, totalNeededNonFir);
+                       NumberFormat.Compact(totalNeededFir), NumberFormat.Compact(totalNeededNonFir));
             }
 
             // every section starts with a line break

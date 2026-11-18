@@ -448,7 +448,7 @@ namespace AllQuestsCheckmarks.Helpers
                     }
 
                     // copies earmarked for later needs (and for upgrades): do not sell these
-                    if (need.Source != QuestNow && need.Given.TryGetValue(target, out int kept) && kept > 0)
+                    if (need.Source != QuestNow && !StashHelper.MoneyIds.Contains(target) && need.Given.TryGetValue(target, out int kept) && kept > 0)
                     {
                         (need.Fir ? item.KeepFirBy : item.KeepAnyBy)[need.Source] += kept;
                     }
