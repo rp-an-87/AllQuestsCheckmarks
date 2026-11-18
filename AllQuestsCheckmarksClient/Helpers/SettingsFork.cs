@@ -29,6 +29,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<bool>? BuyFutureNeeds;
         public static ConfigEntry<bool>? RaidBuyIcon;
+        public static ConfigEntry<bool>? SkipBuyCoveredByFir;
         public static ConfigEntry<bool>? KeepNow;
         public static ConfigEntry<bool>? KeepIcon;
         public static ConfigEntry<bool>? RaidBuyLater;
@@ -152,6 +153,13 @@ namespace AllQuestsCheckmarks.Helpers
                 "Buy icon for later needs (in raid)",
                 true,
                 "Whether or not the buy icon in raid also shows for items you only need for future quests or hideout upgrades. Needs the setting above it"
+            );
+
+            SkipBuyCoveredByFir = needs.ForkBind(
+                "No buy suggestion when found in raid copies cover it",
+                false,
+                "Whether or not an item is left out of the can buy overlay, the can buy checklist and the in raid buy icon when the found in raid copies you hold " +
+                    "beyond the found in raid needs already fill the needs that take any copy (the same rule as the Needed line in the tooltip)"
             );
 
             KeepNow = needs.ForkBind(

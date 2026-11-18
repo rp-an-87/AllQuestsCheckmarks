@@ -487,6 +487,24 @@ namespace AllQuestsCheckmarks.Helpers
                 held.TryGetValue(entry.Key, out StashHelper.ItemsCount own);
                 need.CollectorMissing = collectorItems.Contains(entry.Key) && (own?.Fir ?? 0) < 1;
 
+                // found in raid copies you hold beyond the found in raid needs also fill the needs that take any copy: nothing to buy then
+                // (the same rule as the Needed line of the tooltip; shared quest conditions are left as they are)
+                if (Settings.SkipBuyCoveredByFir!.Value && own != null)
+                {
+                    int spare = Math.Max(0, own.Fir - need.NeedFirBy.Sum());
+
+                    if (need.NeedAnyBy.Sum() <= own.NonFir + spare)
+                    {
+                        for (int i = 0; i < Sources; i++)
+                        {
+                            need.BuyBy[i] -= need.FixedBuyBy[i];
+                            need.UnbuyableBy[i] -= need.FixedUnbuyableBy[i];
+                            need.FixedBuyBy[i] = 0;
+                            need.FixedUnbuyableBy[i] = 0;
+                        }
+                    }
+                }
+
                 for (int i = 0; i < Sources; i++)
                 {
                     need.LootBy[i] = need.FirBy[i] + need.UnbuyableBy[i];
