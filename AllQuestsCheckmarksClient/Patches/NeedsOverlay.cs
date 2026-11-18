@@ -321,6 +321,22 @@ namespace AllQuestsCheckmarks.Patches
 
                 kind = need.Buy;
                 color = Settings.OverlayBuyColor!.GetValue();
+
+                // a copy in your stash that fills the upgrade you can start now: that is "keep, needed now", not the buy marker of the later needs
+                if (Settings.KeepIcon!.Value && viewType == EItemViewType.Inventory)
+                {
+                    int heldNow = need.KeepAnyBy[NeedsSnapshot.HideoutNow] + (notFirCopy ? 0 : need.KeepFirBy[NeedsSnapshot.HideoutNow]);
+
+                    if (heldNow > 0)
+                    {
+                        int[] keepNow = new int[NeedsSnapshot.Sources];
+                        keepNow[NeedsSnapshot.HideoutNow] = heldNow;
+                        keepSources = keepNow;
+                        kind = NeedsSnapshot.EStrength.Now;
+                        color = Settings.OverlayKeepColor!.GetValue();
+                        iconOnly = true;
+                    }
+                }
             }
 
             if (kind == NeedsSnapshot.EStrength.None)
