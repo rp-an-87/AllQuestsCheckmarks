@@ -79,16 +79,6 @@ namespace AllQuestsCheckmarks.Helpers
             public bool Now;
         }
 
-        private class Acc
-        {
-            public readonly int[] FirDemand = new int[Sources];
-            public readonly int[] NonFirDemand = new int[Sources];
-            public readonly int[] PoolFirShort = new int[Sources];
-            public readonly int[] PoolNonFirShort = new int[Sources];
-            public int HandInCount;
-            public bool HandIn, HandInAnyCopy, Collector, Quest, Hideout;
-        }
-
         private class Pool(MongoID questId, List<MongoID> targets, int remaining, int fullCount, bool fir, bool now, bool collector)
         {
             public MongoID QuestId = questId;
@@ -208,19 +198,7 @@ namespace AllQuestsCheckmarks.Helpers
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
             Dictionary<MongoID, StashHelper.ItemsCount> held = Settings.DebugEmptyStash!.Value ? [] : StashHelper.CountAll();
             _held = held;
-            Dictionary<MongoID, Acc> accs = [];
             List<Pool> pools = [];
-
-            Acc AccFor(MongoID id)
-            {
-                if (!accs.TryGetValue(id, out Acc acc))
-                {
-                    acc = new Acc();
-                    accs.Add(id, acc);
-                }
-
-                return acc;
-            }
 
             // started quests: conditions and hand-in progress come from the profile
             HashSet<MongoID> started = [];
@@ -525,30 +503,7 @@ namespace AllQuestsCheckmarks.Helpers
                 Version++;
             }
 
-            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
-
-            if (watch.ElapsedMilliseconds >= 8)
-            {
-                Plugin.LogSlow($"needs snapshot: {watch.ElapsedMilliseconds} ms, {_needs.Count} items, {pools.Count} quest conditions");
-            }
-
             Plugin.LogDebug($"Needs snapshot built in {watch.ElapsedMilliseconds} ms (in raid: {inRaid}): {_needs.Count} items, {pools.Count} quest conditions, changed: {Version}");
-        }
-
-        // How much of each need is not covered when `available` copies are used up in the order of the sources
-        private static int[] Unmet(int[] demand, int available, out int spare)
-        {
-            int[] unmet = new int[Sources];
-
-            for (int i = 0; i < Sources; i++)
-            {
-                int take = Math.Min(demand[i], available);
-                available -= take;
-                unmet[i] = demand[i] - take;
-            }
-
-            spare = available;
-            return unmet;
         }
 
         private static EStrength Strength(int[] missing)

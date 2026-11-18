@@ -5,7 +5,7 @@ namespace AllQuestsCheckmarks.Helpers
 {
     /// <summary>
     /// The icons the game has no picture for, drawn once in code as white glyphs (so they take a color like the game's own icons):
-    /// a clock (needed later), a star (Collector) and an arrow into a tray (hand in, only a fallback).
+    /// a star (Collector) and an arrow into a tray (hand in, only a fallback).
     /// </summary>
     internal static class OverlayIcons
     {
@@ -13,11 +13,9 @@ namespace AllQuestsCheckmarks.Helpers
         private const int Grid = 256;
         private const int Scale = Grid / Size;
 
-        private static Sprite? _clock;
         private static Sprite? _collector;
         private static Sprite? _handIn;
 
-        public static Sprite Clock => _clock ??= Make(DrawClock);
         public static Sprite Collector => _collector ??= Make(DrawCollector);
         public static Sprite HandIn => _handIn ??= Make(DrawHandIn);
 
@@ -85,19 +83,6 @@ namespace AllQuestsCheckmarks.Helpers
 
         // ---- shapes (y goes up)
 
-        private static Func<float, float, bool> Circle(float cx, float cy, float r) =>
-            (x, y) => (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r;
-
-        private static Func<float, float, bool> Ring(float cx, float cy, float r, float width) =>
-            (x, y) =>
-            {
-                float d = Mathf.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
-                return Mathf.Abs(d - r) <= width / 2f;
-            };
-
-        private static Func<float, float, bool> Ellipse(float cx, float cy, float rx, float ry) =>
-            (x, y) => ((x - cx) * (x - cx)) / (rx * rx) + ((y - cy) * (y - cy)) / (ry * ry) <= 1f;
-
         private static Func<float, float, bool> Segment(float x1, float y1, float x2, float y2, float width) =>
             (x, y) =>
             {
@@ -127,14 +112,6 @@ namespace AllQuestsCheckmarks.Helpers
 
                 return inside;
             };
-
-        private static void DrawClock(Surface s)
-        {
-            s.Add(Ring(32, 32, 27, 6));
-            s.Add(Segment(32, 32, 32, 49, 5));
-            s.Add(Segment(32, 32, 45, 32, 5));
-            s.Add(Circle(32, 32, 4));
-        }
 
         // a five pointed star (the Collector marker; it takes the Collector color)
         private static void DrawCollector(Surface s)

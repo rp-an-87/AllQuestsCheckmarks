@@ -139,27 +139,7 @@ namespace AllQuestsCheckmarks.Patches
         private static string? _pending;
         private static bool _fromCheckmark;
 
-        // for the frame monitor: which item was hovered last, and when
-        public static string LastHoverItem = "none";
-        public static float LastHoverTime;
-
         public static void OnItemShowTooltip(GridItemView item)
-        {
-            LastHoverItem = item.Item?.TemplateId.ToString() ?? "?";
-            LastHoverTime = UnityEngine.Time.realtimeSinceStartup;
-
-            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
-            ShowTooltip(item);
-
-            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
-
-            if (watch.ElapsedMilliseconds >= 3)
-            {
-                Plugin.LogSlow($"hover tooltip: {watch.ElapsedMilliseconds} ms for {item.Item?.TemplateId}");
-            }
-        }
-
-        private static void ShowTooltip(GridItemView item)
         {
             _pending = null;
 
@@ -197,19 +177,6 @@ namespace AllQuestsCheckmarks.Patches
         }
 
         public static void OnTooltipShow(ref string text)
-        {
-            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
-            TooltipShow(ref text);
-
-            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
-
-            if (watch.ElapsedMilliseconds >= 3)
-            {
-                Plugin.LogSlow($"tooltip text: {watch.ElapsedMilliseconds} ms");
-            }
-        }
-
-        private static void TooltipShow(ref string text)
         {
             if (_fromCheckmark)
             {

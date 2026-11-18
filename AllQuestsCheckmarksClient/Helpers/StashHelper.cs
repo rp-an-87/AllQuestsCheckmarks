@@ -20,9 +20,6 @@ namespace AllQuestsCheckmarks.Helpers
 
         private static readonly Dictionary<MongoID, ItemsCount> _itemsCache = [];
 
-        // Stash contents cached when a raid starts (the stash can't change during a raid)
-        public static IReadOnlyDictionary<MongoID, ItemsCount> RaidStashCache => _itemsCache;
-
         public class ItemsCount
         {
             public int Fir;

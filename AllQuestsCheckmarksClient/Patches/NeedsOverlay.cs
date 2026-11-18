@@ -48,9 +48,7 @@ namespace AllQuestsCheckmarks.Patches
             public int Retries;
             public readonly Dictionary<Graphic, Color> Colors = [];
             public readonly Dictionary<Image, Sprite> Sprites = [];
-            public Image? Frame;
             public DashedBorder? Dashed;
-            public Image? Fill;
             public bool IconSaved;
             public Color IconColor;
             public Vector3 IconScale;
@@ -63,9 +61,7 @@ namespace AllQuestsCheckmarks.Patches
         private static bool _applying;
         private static bool _pumping;
         private static bool _refreshQueued;
-        private static int _eventsSinceRefresh;
         private static int _appliedVersion = -1;
-        private static Sprite? _frameSprite;
 
         public static void EnablePatches()
         {
@@ -116,8 +112,6 @@ namespace AllQuestsCheckmarks.Patches
                     }
                 }
 
-                Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
-
                 if (_queue.Count > 0)
                 {
                     yield return null;
@@ -131,7 +125,6 @@ namespace AllQuestsCheckmarks.Patches
         // Debounced, so a burst of events costs one rebuild.
         public static void OnInventoryChanged()
         {
-            _eventsSinceRefresh++;
             NeedsSnapshot.Invalidate();
 
             if (_refreshQueued || Plugin.Instance == null)
@@ -147,13 +140,6 @@ namespace AllQuestsCheckmarks.Patches
         {
             yield return new WaitForSeconds(0.3f);
             _refreshQueued = false;
-
-            if (_eventsSinceRefresh > 30)
-            {
-                Plugin.LogSlow($"{_eventsSinceRefresh} inventory events in 0.3 s");
-            }
-
-            _eventsSinceRefresh = 0;
 
             // rebuild first; redraw only if the result is different from what the views already show
             NeedsSnapshot.Refresh();
@@ -370,46 +356,13 @@ namespace AllQuestsCheckmarks.Patches
         {
             view.SetElementsActive(true);
 
-            // a need for later: a dashed border instead of the solid one
+            // a need for later: a dashed border instead of the solid one; just an icon: no border or glow
             bool dashed = !iconOnly && strength < 1f && Settings.OverlayDashedLater!.Value;
-            Settings.EOverlayPart borderStyle = dashed || iconOnly ? Settings.EOverlayPart.Off : Settings.OverlayBorderStyle!.Value;
-            Settings.EOverlayPart glowStyle = iconOnly ? Settings.EOverlayPart.Off : Settings.OverlayGlowStyle!.Value;
-            float borderAlpha = strength * Settings.OverlayBorderMultiplier!.Value;
-            float glowAlpha = strength * Settings.OverlayGlowMultiplier!.Value;
 
-            // border and glow: the game's own (tinted), ours, or none
-            NativePart(view._border, state, borderStyle == Settings.EOverlayPart.Native, color, borderAlpha);
-            NativePart(view._glow, state, glowStyle == Settings.EOverlayPart.Native, color, glowAlpha);
-
+            // the game's own border and glow in the overlay color
+            NativePart(view._border, state, !dashed && !iconOnly, color, strength * Settings.OverlayBorderMultiplier!.Value);
+            NativePart(view._glow, state, !iconOnly, color, strength * Settings.OverlayGlowMultiplier!.Value);
             ShowDashed(view, state, dashed, color);
-
-            if (borderStyle == Settings.EOverlayPart.Own || glowStyle == Settings.EOverlayPart.Own)
-            {
-                EnsureFrame(view, state);
-            }
-
-            if (state.Frame != null)
-            {
-                bool on = borderStyle == Settings.EOverlayPart.Own;
-                state.Frame.gameObject.SetActive(on);
-
-                if (on)
-                {
-                    state.Frame.color = new Color(color.r, color.g, color.b, Mathf.Clamp01(borderAlpha));
-                    state.Frame.pixelsPerUnitMultiplier = 2f / Settings.OverlayBorderThickness!.Value;
-                }
-            }
-
-            if (state.Fill != null)
-            {
-                bool on = glowStyle == Settings.EOverlayPart.Own;
-                state.Fill.gameObject.SetActive(on);
-
-                if (on)
-                {
-                    state.Fill.color = new Color(color.r, color.g, color.b, Mathf.Clamp01(0.55f * glowAlpha));
-                }
-            }
 
             if (view._icon != null)
             {
@@ -443,7 +396,6 @@ namespace AllQuestsCheckmarks.Patches
                 view._icon.color = new Color(iconColor.r, iconColor.g, iconColor.b, strength);
                 view._icon.transform.localScale = state.IconScale * Settings.OverlayIconScale!.Value;
                 view._icon.gameObject.SetActive(true);
-
             }
 
             state.Modified = true;
@@ -464,7 +416,7 @@ namespace AllQuestsCheckmarks.Patches
                 return;
             }
 
-            bool tint = Settings.OverlayTintNative!.Value && color != Color.white;
+            bool tint = color != Color.white;
 
             foreach (Graphic graphic in part.GetComponentsInChildren<Graphic>(true))
             {
@@ -720,104 +672,6 @@ namespace AllQuestsCheckmarks.Patches
             state.Dashed.gameObject.SetActive(true);
         }
 
-        private static void EnsureFrame(WishlistGridView view, State state)
-        {
-            if (state.Frame != null && state.Fill != null)
-            {
-                return;
-            }
-
-            // same geometry as the game's own border, in the same parent
-            Transform parent = view._border != null ? view._border.transform.parent : view.transform;
-            RectTransform? source = view._border != null ? view._border.transform as RectTransform : null;
-
-            state.Fill = NewImage("AQC_Glow", parent, source, GlowSprite(), Image.Type.Sliced);
-            state.Frame = NewImage("AQC_Frame", parent, source, FrameSprite(), Image.Type.Sliced);
-        }
-
-        private static Image NewImage(string name, Transform parent, RectTransform? source, Sprite? sprite, Image.Type type)
-        {
-            GameObject go = new(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-
-            RectTransform rect = (RectTransform)go.transform;
-
-            if (source != null)
-            {
-                rect.anchorMin = source.anchorMin;
-                rect.anchorMax = source.anchorMax;
-                rect.pivot = source.pivot;
-                rect.offsetMin = source.offsetMin;
-                rect.offsetMax = source.offsetMax;
-            }
-            else
-            {
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = rect.offsetMax = Vector2.zero;
-            }
-
-            Image image = go.GetComponent<Image>();
-            image.sprite = sprite;
-            image.type = type;
-            image.raycastTarget = false;
-            return image;
-        }
-
-        private static Sprite? _glowSprite;
-
-        // a soft glow along the inside of the edge, fading to nothing toward the middle (like the game's own selection glow); sliced, so it keeps its width at any item size
-        private static Sprite GlowSprite()
-        {
-            if (_glowSprite != null)
-            {
-                return _glowSprite;
-            }
-
-            const int size = 32;
-            const int reach = 12;
-            Texture2D texture = new(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
-
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    int distance = Mathf.Min(Mathf.Min(x, y), Mathf.Min(size - 1 - x, size - 1 - y));
-                    float t = Mathf.Clamp01(1f - distance / (float)reach);
-                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, t * t));
-                }
-            }
-
-            texture.Apply();
-            _glowSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(reach, reach, reach, reach));
-            return _glowSprite;
-        }
-
-        // a hollow square with a 2 px edge, sliced, so the border keeps its thickness at any item size
-        private static Sprite FrameSprite()
-        {
-            if (_frameSprite != null)
-            {
-                return _frameSprite;
-            }
-
-            const int size = 8;
-            Texture2D texture = new(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
-
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    bool edge = x < 2 || y < 2 || x >= size - 2 || y >= size - 2;
-                    texture.SetPixel(x, y, edge ? Color.white : Color.clear);
-                }
-            }
-
-            texture.Apply();
-            _frameSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(2, 2, 2, 2));
-            return _frameSprite;
-        }
-
         private static void Restore(WishlistGridView view, State state)
         {
             if (!state.Modified)
@@ -846,16 +700,6 @@ namespace AllQuestsCheckmarks.Patches
             if (state.Dashed != null)
             {
                 state.Dashed.gameObject.SetActive(false);
-            }
-
-            if (state.Frame != null)
-            {
-                state.Frame.gameObject.SetActive(false);
-            }
-
-            if (state.Fill != null)
-            {
-                state.Fill.gameObject.SetActive(false);
             }
 
             if (view._icon != null && state.IconSaved)

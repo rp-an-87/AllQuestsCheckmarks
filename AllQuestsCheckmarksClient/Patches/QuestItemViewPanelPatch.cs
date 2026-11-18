@@ -52,23 +52,6 @@ namespace AllQuestsCheckmarks.Patches
         static bool Prefix(Profile profile, Item item, [CanBeNull] SimpleTooltip tooltip, QuestItemViewPanel __instance, Image ____questIconImage,
             Sprite ____foundInRaidSprite, Sprite ____questItemSprite, ref string ____tooltipText, ref SimpleTooltip ____tooltip, TextMeshProUGUI ____questItemLabel)
         {
-            System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
-            bool result = PrefixCore(profile, item, tooltip, __instance, ____questIconImage, ____foundInRaidSprite, ____questItemSprite,
-                ref ____tooltipText, ref ____tooltip, ____questItemLabel);
-
-            Plugin.FrameMs += watch.Elapsed.TotalMilliseconds;
-
-            if (watch.ElapsedMilliseconds >= 3)
-            {
-                Plugin.LogSlow($"checkmark panel build: {watch.ElapsedMilliseconds} ms for {item.TemplateId}");
-            }
-
-            return result;
-        }
-
-        static bool PrefixCore(Profile profile, Item item, SimpleTooltip tooltip, QuestItemViewPanel __instance, Image ____questIconImage,
-            Sprite ____foundInRaidSprite, Sprite ____questItemSprite, ref string ____tooltipText, ref SimpleTooltip ____tooltip, TextMeshProUGUI ____questItemLabel)
-        {
             __instance.HideGameObject();
 
             if (____questItemLabel != null)
