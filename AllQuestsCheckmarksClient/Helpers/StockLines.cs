@@ -25,11 +25,13 @@ namespace AllQuestsCheckmarks.Helpers
         private static string Small(string text) => "<size=80%>" + text + "</size>";
 
         // "5 FiR": the figure in the given color, the word in its own
-        private static string Part(int number, bool fir, string color)
+        private static string Part(int number, bool fir, string color, int raid = 0)
         {
             string word = (fir ? "aqc_fir" : "aqc_nonfir").Localized(null);
+            string text = $"{Num(number, color)} <color={(fir ? FirColor : NonFirColor)}>{word}</color>";
 
-            return $"{Num(number, color)} <color={(fir ? FirColor : NonFirColor)}>{word}</color>";
+            // what you carry in the raid, right behind the figure it adds to: the only purple text besides the needed figures
+            return raid > 0 ? text + $" <size=75%><b><color={RaidColor}>(+{NumberFormat.Compact(raid)})</color></b></size>" : text;
         }
 
         // the stash and needed numbers do not fill a need of that kind
@@ -83,22 +85,10 @@ namespace AllQuestsCheckmarks.Helpers
             // in stash: a kind is shown when you hold some or it is needed (a red 0 says you have none)
             List<string> held = [];
 
-            if (stash.Fir > 0 || needFir > 0) held.Add(Part(stash.Fir, true, needFir > 0 ? Judge(firOk, false) : WhiteColor));
-            if (stash.NonFir > 0 || needAny > 0) held.Add(Part(stash.NonFir, false, needAny > 0 ? Judge(anyOk, false) : WhiteColor));
+            if (stash.Fir > 0 || needFir > 0 || carried.Fir > 0) held.Add(Part(stash.Fir, true, needFir > 0 ? Judge(firOk, false) : WhiteColor, carried.Fir));
+            if (stash.NonFir > 0 || needAny > 0 || carried.NonFir > 0) held.Add(Part(stash.NonFir, false, needAny > 0 ? Judge(anyOk, false) : WhiteColor, carried.NonFir));
 
-            string heldDetails = Small(string.Join(" · ", held));
-
-            if (carried.Total > 0)
-            {
-                List<string> raid = [];
-
-                if (carried.Fir > 0) raid.Add($"+{NumberFormat.Compact(carried.Fir)} {"aqc_fir".Localized(null)}");
-                if (carried.NonFir > 0) raid.Add($"+{NumberFormat.Compact(carried.NonFir)} {"aqc_nonfir".Localized(null)}");
-
-                heldDetails += $" <size=75%><b><color={RaidColor}>{string.Join(" · ", raid)}</color></b></size>";
-            }
-
-            List<Row> rows = [new Row("aqc_stock_in_stash".Localized(null), stash.Total, WhiteColor, held.Count > 0 || carried.Total > 0 ? heldDetails : "")];
+            List<Row> rows = [new Row("aqc_stock_in_stash".Localized(null), stash.Total, WhiteColor, held.Count > 0 ? Small(string.Join(" · ", held)) : "")];
 
             if (needFir + needAny > 0)
             {
