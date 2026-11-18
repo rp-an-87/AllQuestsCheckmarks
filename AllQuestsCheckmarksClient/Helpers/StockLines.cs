@@ -82,11 +82,11 @@ namespace AllQuestsCheckmarks.Helpers
             bool firOkRaid = FirFilled(stash.Fir + carried.Fir);
             bool anyOkRaid = AnyFilled(stash.Fir + carried.Fir, stash.NonFir + carried.NonFir);
 
-            // in stash: a kind is shown when you hold some or it is needed (a red 0 says you have none)
+            // in stash: plain figures (found in raid copies fill non-FiR needs too, so a red part would mislead); a kind is shown when you hold or carry some or it is needed
             List<string> held = [];
 
-            if (stash.Fir > 0 || needFir > 0 || carried.Fir > 0) held.Add(Part(stash.Fir, true, needFir > 0 ? Judge(firOk, false) : WhiteColor, carried.Fir));
-            if (stash.NonFir > 0 || needAny > 0 || carried.NonFir > 0) held.Add(Part(stash.NonFir, false, needAny > 0 ? Judge(anyOk, false) : WhiteColor, carried.NonFir));
+            if (stash.Fir > 0 || needFir > 0 || carried.Fir > 0) held.Add(Part(stash.Fir, true, WhiteColor, carried.Fir));
+            if (stash.NonFir > 0 || needAny > 0 || carried.NonFir > 0) held.Add(Part(stash.NonFir, false, WhiteColor, carried.NonFir));
 
             List<Row> rows = [new Row("aqc_stock_in_stash".Localized(null), stash.Total, WhiteColor, held.Count > 0 ? Small(string.Join(" · ", held)) : "")];
 
