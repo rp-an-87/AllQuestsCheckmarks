@@ -332,21 +332,16 @@ namespace AllQuestsCheckmarks.Patches
             // every section starts with a line break
             // what you can act on now first, then what is needed later: smaller, behind a separator
             string sections = activeQuestsTooltip + hideoutTooltip;
-            // display only: the later lists can be left out in raid, nothing is counted differently
-            if (Settings.HideLaterInRaid!.Value && NeedsSnapshot.InRaid)
-            {
-                futureQuestsTooltip = "";
-                hideoutLaterTooltip = "";
-            }
-
             string laterSections = futureQuestsTooltip + (futureQuestsTooltip.Length > 0 && hideoutLaterTooltip.Length > 0 ? "\n<size=5> </size>" : "") + hideoutLaterTooltip;
 
             if (laterSections.Length > 0)
             {
-                // nothing current above it: the solid line before the sections already separates
-                sections += separated && sections.Length > 0
+                // nothing current above it: the solid line before the sections already separates.
+                // The block itself is put in when the tooltip is shown (it can be left out in raid, see HideLaterInRaid)
+                ItemHoverTooltip.SetLater(__instance, separated && sections.Length > 0
                     ? "\n<size=5> </size>\n" + TooltipSeparator.Soft + "<size=85%>" + laterSections + "</size>"
-                    : "<size=85%>" + laterSections + "</size>";
+                    : "<size=85%>" + laterSections + "</size>");
+                sections += ItemHoverTooltip.LaterToken;
             }
 
             if (Plugin.isFikaInstalled && Settings.SquadQuests!.Value && SquadQuests.IsNeededForSquadMembers(item, out List<string> members))

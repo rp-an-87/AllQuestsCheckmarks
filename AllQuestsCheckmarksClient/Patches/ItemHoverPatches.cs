@@ -45,6 +45,17 @@ namespace AllQuestsCheckmarks.Patches
         // the tooltip text as built, with its tokens: every hover starts from it (a text that already had its tokens replaced would show old numbers)
         private static readonly ConditionalWeakTable<QuestItemViewPanel, StrongBox<string>> _templates = new();
 
+        // the block of later needs (future quests and upgrades): left out in raid when the setting says so, decided when the tooltip is shown
+        public const string LaterToken = "\uE002";
+
+        private static readonly ConditionalWeakTable<QuestItemViewPanel, StrongBox<string>> _later = new();
+
+        public static void SetLater(QuestItemViewPanel panel, string block)
+        {
+            _later.Remove(panel);
+            _later.Add(panel, new StrongBox<string>(block));
+        }
+
         public static void SetTemplate(QuestItemViewPanel panel, string text)
         {
             _templates.Remove(panel);
@@ -67,9 +78,19 @@ namespace AllQuestsCheckmarks.Patches
                 text = template.Value;
             }
 
-            if (string.IsNullOrEmpty(text) || !text.Contains(ActionToken) && !text.Contains(StockToken))
+            if (string.IsNullOrEmpty(text) || !text.Contains(ActionToken) && !text.Contains(StockToken) && !text.Contains(LaterToken))
             {
                 return text;
+            }
+
+            if (text.Contains(LaterToken))
+            {
+                bool hide = Settings.HideLaterInRaid!.Value && NeedsSnapshot.InRaid;
+                string block = !hide && _later.TryGetValue(panel, out StrongBox<string> later) ? later.Value : "";
+
+                // nothing else in the sections: the separator in front of them goes too
+                text = hide ? text.Replace("\n" + TooltipSeparator.Line + LaterToken, "") : text;
+                text = text.Replace(LaterToken, block);
             }
 
             bool known = _items.TryGetValue(panel, out StrongBox<MongoID> id);
