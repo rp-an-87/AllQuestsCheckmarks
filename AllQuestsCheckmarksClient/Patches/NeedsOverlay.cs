@@ -209,13 +209,13 @@ namespace AllQuestsCheckmarks.Patches
             {
                 State state = _states.GetOrCreateValue(view);
 
-                if (!Settings.UseOverlays!.Value || !state.Examined || !TryGetStyle(view, state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly))
+                if (!Settings.UseOverlays!.Value || !state.Examined || !TryGetStyle(view, state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly, out bool isLater))
                 {
                     Restore(view, state);
                     return;
                 }
 
-                Style(view, state, color, strength, group, icon, iconOnly);
+                Style(view, state, color, strength, group, icon, iconOnly, isLater);
             }
             finally
             {
@@ -223,9 +223,10 @@ namespace AllQuestsCheckmarks.Patches
             }
         }
 
-        private static bool TryGetStyle(WishlistGridView view, State state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly)
+        private static bool TryGetStyle(WishlistGridView view, State state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly, out bool isLater)
         {
             iconOnly = false;
+            isLater = false;
             icon = EIcon.Group;
             color = default;
             strength = 1f;
@@ -334,7 +335,8 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
-            strength = kind == NeedsSnapshot.EStrength.Now ? 1f : later;
+            isLater = kind != NeedsSnapshot.EStrength.Now;
+            strength = isLater ? later : 1f;
             // the icon says why: only the sources that are actually missing and that you can act on (in raid what to loot, out of raid what to buy)
             int[] missing = keepSources ?? (NeedsSnapshot.InRaid && !iconOnly ? need.LootBy : need.BuyBy);
             bool withFuture = keepSources != null || NeedsSnapshot.InRaid && !iconOnly || Settings.BuyFutureNeeds!.Value;
@@ -352,12 +354,12 @@ namespace AllQuestsCheckmarks.Patches
             return true;
         }
 
-        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group, EIcon icon, bool iconOnly)
+        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group, EIcon icon, bool iconOnly, bool isLater)
         {
             view.SetElementsActive(true);
 
             // a need for later: a dashed border instead of the solid one; just an icon: no border or glow
-            bool dashed = !iconOnly && strength < 1f && Settings.OverlayDashedLater!.Value;
+            bool dashed = !iconOnly && isLater && Settings.OverlayDashedLater!.Value;
 
             // the game's own border and glow in the overlay color
             NativePart(view._border, state, !dashed && !iconOnly, color, strength * Settings.OverlayBorderMultiplier!.Value);
