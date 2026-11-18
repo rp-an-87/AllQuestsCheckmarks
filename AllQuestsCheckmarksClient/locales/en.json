@@ -6,6 +6,7 @@
 	"aqc_stock_now": "now",
 	"aqc_active_quests": "Active quests:",
 	"aqc_future_quests": "Future quests:",
+	"aqc_future_quests_shared": "Future quests (shared requirements):",
 	"aqc_fir": "FiR",
 	"aqc_nonfir": "Non-FiR",
 	"aqc_squad_quests": "Required for squad:",

@@ -96,6 +96,9 @@ namespace AllQuestsCheckmarks.Patches
             string activeQuestsTooltip = "";
             string futureQuestsTooltip = "";
 
+            // future quests whose count several items share get a list of their own
+            string futureSharedTooltip = "";
+
             bool useCustomTextColors = Settings.CustomTextColors!.Value;
             string indent = Settings.BulletPoints!.Value ? "  · " : "  ";
 
@@ -213,10 +216,16 @@ namespace AllQuestsCheckmarks.Patches
                         continue;
                     }
 
-                    if (!neededForFuture)
+                    bool pooled = IsPooled(quest.Key);
+                    neededForFuture = true;
+
+                    if (!pooled && futureQuestsTooltip.Length == 0)
                     {
-                        neededForFuture = true;
                         futureQuestsTooltip = "\n" + "aqc_future_quests".Localized();
+                    }
+                    else if (pooled && futureSharedTooltip.Length == 0)
+                    {
+                        futureSharedTooltip = "\n" + "aqc_future_quests_shared".Localized();
                     }
 
                     if (quest.Key != QuestsHelper.COLLECTOR_ID)
@@ -237,14 +246,23 @@ namespace AllQuestsCheckmarks.Patches
                         }
                     }
 
-                    futureQuestsTooltip += $"\n{indent}<color={futureColor}>{questName}</color>: {NumberFormat.Compact(quest.Value.Count.Count)}";
+                    string questLine = $"\n{indent}<color={futureColor}>{questName}</color>: {NumberFormat.Compact(quest.Value.Count.Count)}";
 
                     if (showNonFir)
                     {
-                        futureQuestsTooltip += " " + FirLabel(quest.Value.Count.Fir);
+                        questLine += " " + FirLabel(quest.Value.Count.Fir);
                     }
 
-                    futureQuestsTooltip += PoolNote(quest.Key);
+                    questLine += PoolNote(quest.Key);
+
+                    if (pooled)
+                    {
+                        futureSharedTooltip += questLine;
+                    }
+                    else
+                    {
+                        futureQuestsTooltip += questLine;
+                    }
                 }
             }
 
@@ -332,7 +350,7 @@ namespace AllQuestsCheckmarks.Patches
             // every section starts with a line break
             // what you can act on now first, then what is needed later: smaller, behind a separator
             string sections = activeQuestsTooltip + hideoutTooltip;
-            string laterSections = futureQuestsTooltip + (futureQuestsTooltip.Length > 0 && hideoutLaterTooltip.Length > 0 ? "\n<size=5> </size>" : "") + hideoutLaterTooltip;
+            string laterSections = string.Join("\n<size=5> </size>", new[] { futureQuestsTooltip, futureSharedTooltip, hideoutLaterTooltip }.Where(s => s.Length > 0));
 
             if (laterSections.Length > 0)
             {
