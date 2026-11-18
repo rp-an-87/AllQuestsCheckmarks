@@ -250,6 +250,7 @@ namespace AllQuestsCheckmarks.Patches
             // Hideout upgrades (from the Wishlist Extended fork). Same relevance rule as quests:
             // a non-FiR item only matters if some requirement accepts non-FiR items.
             string hideoutTooltip = "";
+            string hideoutLaterTooltip = "";
             int hideoutFir = 0;
             int hideoutNonFir = 0;
 
@@ -286,14 +287,18 @@ namespace AllQuestsCheckmarks.Patches
                                 continue;
                             }
 
+                            string line = "";
+
                             if (!header)
                             {
                                 header = true;
-                                hideoutTooltip += "\n" + (futurePass ? "aqc_hideout_future" : "aqc_hideout").Localized(null);
+                                line += "\n" + (futurePass ? "aqc_hideout_future" : "aqc_hideout").Localized(null);
                             }
 
-                            hideoutTooltip += $"\n{indent}<color={hideoutColor}>{hideout.Area[i]} lvl {hideout.Level[i]}</color>: {hideout.Quantity[i]} "
+                            line += $"\n{indent}<color={hideoutColor}>{hideout.Area[i]} lvl {hideout.Level[i]}</color>: {hideout.Quantity[i]} "
                                 + FirLabel(hideout.Fir[i]);
+
+                            if (futurePass) hideoutLaterTooltip += line; else hideoutTooltip += line;
                         }
                     }
 
@@ -328,7 +333,16 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             // every section starts with a line break
-            string sections = activeQuestsTooltip + futureQuestsTooltip + hideoutTooltip;
+            // what you can act on now first, then what is needed later: smaller, behind a separator
+            string sections = activeQuestsTooltip + hideoutTooltip;
+            string laterSections = futureQuestsTooltip + hideoutLaterTooltip;
+
+            if (laterSections.Length > 0)
+            {
+                sections += separated
+                    ? "\n" + TooltipSeparator.Soft + "<size=85%>" + laterSections + "</size>"
+                    : "<size=85%>" + laterSections + "</size>";
+            }
 
             if (Plugin.isFikaInstalled && Settings.SquadQuests!.Value && SquadQuests.IsNeededForSquadMembers(item, out List<string> members))
             {
