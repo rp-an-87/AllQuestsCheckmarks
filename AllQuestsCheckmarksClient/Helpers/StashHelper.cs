@@ -71,13 +71,8 @@ namespace AllQuestsCheckmarks.Helpers
         // What you carry in a raid (equipment and quest items): it goes to the stash when you extract
         public static ItemsCount GetCarried(MongoID itemId)
         {
+            // the caller decides when this applies (a raid, or the debug switch that pretends one)
             ItemsCount count = new();
-
-            if (!RaidUtils.IsInRaid())
-            {
-                return count;
-            }
-
             Profile profile = ClientAppUtils.GetClientApp().GetClientBackEndSession().Profile;
 
             foreach (Item item in profile.Inventory.GetPlayerItems(EPlayerItems.Equipment | EPlayerItems.QuestItems).Where(i => i.TemplateId == itemId))

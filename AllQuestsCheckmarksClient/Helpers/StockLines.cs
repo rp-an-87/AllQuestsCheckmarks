@@ -56,7 +56,7 @@ namespace AllQuestsCheckmarks.Helpers
             bool covered = haveNeed && needFir + needAny > 0 && missFir + missNon == 0;
 
             // what a raid would add (the setting that counts the inventory in the stash number makes it part of it already)
-            StashHelper.ItemsCount carried = RaidUtils.IsInRaid() && !Settings.IncludeRaidItems!.Value ? StashHelper.GetCarried(id) : new StashHelper.ItemsCount();
+            StashHelper.ItemsCount carried = NeedsSnapshot.InRaid && !Settings.IncludeRaidItems!.Value ? StashHelper.GetCarried(id) : new StashHelper.ItemsCount();
 
             List<string> groups = [];
 
