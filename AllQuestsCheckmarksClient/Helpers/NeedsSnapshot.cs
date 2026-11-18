@@ -348,14 +348,14 @@ namespace AllQuestsCheckmarks.Helpers
                 stock[entry.Key] = [entry.Value.Fir, entry.Value.NonFir];
             }
 
-            // current needs before later ones, found in raid needs before the ones that take any copy, narrow needs before wide ones
-            needs.Sort((a, b) =>
-            {
-                int c = a.Source.CompareTo(b.Source);
-                if (c != 0) return c;
-                c = b.Fir.CompareTo(a.Fir);
-                return c != 0 ? c : a.Targets.Count.CompareTo(b.Targets.Count);
-            });
+            // The needs with a fixed count of their own come first (a quest condition that several items share only gets what is left: it can
+            // be filled by other items, so it must not take the copies a fixed need counts on). Then current needs before later ones,
+            // found in raid needs before the ones that take any copy, narrow needs before wide ones. OrderBy is stable, so the result does not flip between rebuilds
+            needs = [.. needs
+                .OrderBy(n => n.Targets.Count > 1 ? 1 : 0)
+                .ThenBy(n => n.Source)
+                .ThenByDescending(n => n.Fir)
+                .ThenBy(n => n.Targets.Count)];
 
             foreach (NeedRec need in needs)
             {
