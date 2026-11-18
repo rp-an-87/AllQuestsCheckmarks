@@ -49,9 +49,7 @@ namespace AllQuestsCheckmarks.Patches
             public readonly Dictionary<Graphic, Color> Colors = [];
             public readonly Dictionary<Image, Sprite> Sprites = [];
             public Image? Frame;
-            public GameObject? DashRoot;
-            public readonly List<Image> Dashes = [];
-            public Image? Clock;
+            public DashedBorder? Dashed;
             public Image? Fill;
             public bool IconSaved;
             public Color IconColor;
@@ -225,13 +223,13 @@ namespace AllQuestsCheckmarks.Patches
             {
                 State state = _states.GetOrCreateValue(view);
 
-                if (!Settings.UseOverlays!.Value || !state.Examined || !TryGetStyle(view, state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon))
+                if (!Settings.UseOverlays!.Value || !state.Examined || !TryGetStyle(view, state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly))
                 {
                     Restore(view, state);
                     return;
                 }
 
-                Style(view, state, color, strength, group, icon);
+                Style(view, state, color, strength, group, icon, iconOnly);
             }
             finally
             {
@@ -239,8 +237,9 @@ namespace AllQuestsCheckmarks.Patches
             }
         }
 
-        private static bool TryGetStyle(WishlistGridView view, State state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon)
+        private static bool TryGetStyle(WishlistGridView view, State state, out Color color, out float strength, out EWishlistGroup group, out EIcon icon, out bool iconOnly)
         {
+            iconOnly = false;
             icon = EIcon.Group;
             color = default;
             strength = 1f;
@@ -316,13 +315,23 @@ namespace AllQuestsCheckmarks.Patches
 
             if (kind == NeedsSnapshot.EStrength.None)
             {
-                return false;
+                // in raid: nothing to loot, but something you can simply buy: just the icon, in the can buy color, no border
+                if (NeedsSnapshot.InRaid && Settings.RaidBuyIcon!.Value && need.Buy != NeedsSnapshot.EStrength.None)
+                {
+                    kind = need.Buy;
+                    color = Settings.OverlayBuyColor!.GetValue();
+                    iconOnly = true;
+                }
+                else
+                {
+                    return false;
+                }
             }
 
             strength = kind == NeedsSnapshot.EStrength.Now ? 1f : later;
             // the icon says why: only the sources that are actually missing and that you can act on (in raid what to loot, out of raid what to buy)
-            int[] missing = NeedsSnapshot.InRaid ? need.LootBy : need.BuyBy;
-            bool withFuture = NeedsSnapshot.InRaid || Settings.BuyFutureNeeds!.Value;
+            int[] missing = NeedsSnapshot.InRaid && !iconOnly ? need.LootBy : need.BuyBy;
+            bool withFuture = NeedsSnapshot.InRaid && !iconOnly || Settings.BuyFutureNeeds!.Value;
             bool fromQuest = missing[NeedsSnapshot.QuestNow] > 0 || withFuture && missing[NeedsSnapshot.QuestLater] > 0;
             bool fromHideout = missing[NeedsSnapshot.HideoutNow] > 0 || withFuture && missing[NeedsSnapshot.HideoutLater] > 0;
 
@@ -337,14 +346,14 @@ namespace AllQuestsCheckmarks.Patches
             return true;
         }
 
-        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group, EIcon icon)
+        private static void Style(WishlistGridView view, State state, Color color, float strength, EWishlistGroup group, EIcon icon, bool iconOnly)
         {
             view.SetElementsActive(true);
 
             // a need for later: a dashed border instead of the solid one
-            bool dashed = strength < 1f && Settings.OverlayDashedLater!.Value;
-            Settings.EOverlayPart borderStyle = dashed ? Settings.EOverlayPart.Off : Settings.OverlayBorderStyle!.Value;
-            Settings.EOverlayPart glowStyle = Settings.OverlayGlowStyle!.Value;
+            bool dashed = !iconOnly && strength < 1f && Settings.OverlayDashedLater!.Value;
+            Settings.EOverlayPart borderStyle = dashed || iconOnly ? Settings.EOverlayPart.Off : Settings.OverlayBorderStyle!.Value;
+            Settings.EOverlayPart glowStyle = iconOnly ? Settings.EOverlayPart.Off : Settings.OverlayGlowStyle!.Value;
             float borderAlpha = strength * Settings.OverlayBorderMultiplier!.Value;
             float glowAlpha = strength * Settings.OverlayGlowMultiplier!.Value;
 
@@ -415,55 +424,9 @@ namespace AllQuestsCheckmarks.Patches
                 view._icon.transform.localScale = state.IconScale * Settings.OverlayIconScale!.Value;
                 view._icon.gameObject.SetActive(true);
 
-                ShowClock(view, state, strength < 1f && icon != EIcon.HandIn && icon != EIcon.Collector, iconColor);
             }
 
             state.Modified = true;
-        }
-
-        // A small clock next to the icon when the need is for later. It is a child of the icon, so it moves and scales with it
-        private static void ShowClock(WishlistGridView view, State state, bool show, Color color)
-        {
-            if (!show)
-            {
-                if (state.Clock != null)
-                {
-                    state.Clock.gameObject.SetActive(false);
-                }
-
-                return;
-            }
-
-            if (state.Clock == null)
-            {
-                GameObject go = new("AQC_Clock", typeof(RectTransform), typeof(Image));
-                go.transform.SetParent(view._icon.transform, false);
-
-                RectTransform rect = (RectTransform)go.transform;
-                rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
-                rect.pivot = new Vector2(0f, 0f);
-                rect.anchoredPosition = new Vector2(1f, 0f);
-
-                Image image = go.GetComponent<Image>();
-                image.sprite = ClockSprite();
-                image.preserveAspect = true;
-                image.raycastTarget = false;
-                state.Clock = image;
-            }
-
-            // the same size as the icon, right next to it (the icon's size is read from its sprite when its rectangle is not laid out yet)
-            RectTransform iconRect = (RectTransform)view._icon.transform;
-            float side = Mathf.Min(iconRect.rect.width, iconRect.rect.height);
-
-            if (side < 1f)
-            {
-                side = view._icon.sprite != null ? Mathf.Min(view._icon.sprite.rect.width, view._icon.sprite.rect.height) : 22f;
-            }
-
-            state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
-            state.Clock.rectTransform.anchoredPosition = new Vector2(side * Settings.OverlayClockGap!.Value, 0f);
-            state.Clock.color = color;
-            state.Clock.gameObject.SetActive(true);
         }
 
         // The game's own border or glow: shown or hidden, and when shown tinted with the overlay color and scaled in strength
@@ -511,29 +474,6 @@ namespace AllQuestsCheckmarks.Patches
                 graphic.color = new Color(tint ? color.r : original.r, tint ? color.g : original.g, tint ? color.b : original.b,
                     Mathf.Clamp01((exact ? 1f : original.a) * alpha));
             }
-        }
-
-        // The clock is the game's own one, the icon of the operational (daily) tasks tab
-        private static Sprite? _clockSprite;
-        private static bool _clockTried;
-
-        private static Sprite ClockSprite()
-        {
-            if (!_clockTried)
-            {
-                _clockTried = true;
-
-                try
-                {
-                    _clockSprite = EFTHardSettings.Instance.StaticIcons.QuestIconTypeSprites[EQuestIconType.Daily];
-                }
-                catch (System.Exception)
-                {
-                    _clockSprite = null;
-                }
-            }
-
-            return _clockSprite != null ? _clockSprite : OverlayIcons.Clock;
         }
 
         // The hand in icon is the game's "bring an item" quest icon, the same one CustomRpTweaks puts on its hand in button
@@ -708,120 +648,56 @@ namespace AllQuestsCheckmarks.Patches
             return result;
         }
 
-        private static Sprite? _dashAcross;
-        private static Sprite? _dashDown;
-
-        // a short dash and a short gap, repeated along the edge
-        private static Sprite DashSprite(bool horizontal)
-        {
-            if ((horizontal ? _dashAcross : _dashDown) is Sprite cached)
-            {
-                return cached;
-            }
-
-            int width = horizontal ? 8 : 1;
-            int height = horizontal ? 1 : 8;
-            Texture2D texture = new(width, height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    int along = horizontal ? x : y;
-                    texture.SetPixel(x, y, along < 3 ? Color.white : Color.clear);
-                }
-            }
-
-            texture.Apply();
-            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
-
-            if (horizontal)
-            {
-                _dashAcross = sprite;
-            }
-            else
-            {
-                _dashDown = sprite;
-            }
-
-            return sprite;
-        }
-
-        // The dashed border: four edges of repeated dashes, in the same place as the game's own border
+        // The dashed border: one mesh in the same place as the game's own border (see DashedBorder)
         private static void ShowDashed(WishlistGridView view, State state, bool show, Color color)
         {
             if (!show)
             {
-                if (state.DashRoot != null)
+                if (state.Dashed != null)
                 {
-                    state.DashRoot.SetActive(false);
+                    state.Dashed.gameObject.SetActive(false);
                 }
 
                 return;
             }
 
-            if (state.DashRoot == null)
+            if (state.Dashed == null)
             {
                 Transform parent = view._border != null ? view._border.transform.parent : view.transform;
                 RectTransform? source = view._border != null ? view._border.transform as RectTransform : null;
 
-                GameObject root = new("AQC_Dashed", typeof(RectTransform));
-                root.transform.SetParent(parent, false);
-                RectTransform rootRect = (RectTransform)root.transform;
+                GameObject go = new("AQC_Dashed", typeof(RectTransform));
+                go.transform.SetParent(parent, false);
+                RectTransform rect = (RectTransform)go.transform;
 
                 if (source != null)
                 {
-                    rootRect.anchorMin = source.anchorMin;
-                    rootRect.anchorMax = source.anchorMax;
-                    rootRect.pivot = source.pivot;
-                    rootRect.offsetMin = source.offsetMin;
-                    rootRect.offsetMax = source.offsetMax;
+                    rect.anchorMin = source.anchorMin;
+                    rect.anchorMax = source.anchorMax;
+                    rect.pivot = source.pivot;
+                    rect.offsetMin = source.offsetMin;
+                    rect.offsetMax = source.offsetMax;
                 }
                 else
                 {
-                    rootRect.anchorMin = Vector2.zero;
-                    rootRect.anchorMax = Vector2.one;
-                    rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
+                    rect.anchorMin = Vector2.zero;
+                    rect.anchorMax = Vector2.one;
+                    rect.offsetMin = rect.offsetMax = Vector2.zero;
                 }
 
-                // top, bottom, left, right
-                state.Dashes.Add(NewDashEdge(root.transform, true, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1)));
-                state.Dashes.Add(NewDashEdge(root.transform, true, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0)));
-                state.Dashes.Add(NewDashEdge(root.transform, false, new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f)));
-                state.Dashes.Add(NewDashEdge(root.transform, false, new Vector2(1, 0), new Vector2(1, 1), new Vector2(1, 0.5f)));
-                state.DashRoot = root;
+                state.Dashed = go.AddComponent<DashedBorder>();
+                state.Dashed.raycastTarget = false;
             }
 
-            float thickness = Mathf.Max(1, Settings.OverlayBorderThickness!.Value);
-            Color tint = new(color.r, color.g, color.b, Mathf.Clamp01(Settings.OverlayDashedStrength!.Value));
+            state.Dashed.Configure(
+                new Color(color.r, color.g, color.b, Mathf.Clamp01(Settings.OverlayDashedStrength!.Value)),
+                Settings.OverlayDashLength!.Value,
+                Settings.OverlayDashGap!.Value,
+                Mathf.Max(1f, Settings.OverlayBorderThickness!.Value),
+                Settings.OverlayDashFade!.Value,
+                Settings.OverlayDashCorner!.Value);
 
-            for (int i = 0; i < state.Dashes.Count; i++)
-            {
-                Image edge = state.Dashes[i];
-                edge.color = tint;
-                edge.pixelsPerUnitMultiplier = 1f / thickness;
-                edge.rectTransform.sizeDelta = i < 2 ? new Vector2(0, thickness) : new Vector2(thickness, 0);
-            }
-
-            state.DashRoot.SetActive(true);
-        }
-
-        private static Image NewDashEdge(Transform parent, bool horizontal, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot)
-        {
-            GameObject go = new(horizontal ? "AQC_DashAcross" : "AQC_DashDown", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-
-            RectTransform rect = (RectTransform)go.transform;
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.pivot = pivot;
-            rect.anchoredPosition = Vector2.zero;
-
-            Image image = go.GetComponent<Image>();
-            image.sprite = DashSprite(horizontal);
-            image.type = Image.Type.Tiled;
-            image.raycastTarget = false;
-            return image;
+            state.Dashed.gameObject.SetActive(true);
         }
 
         private static void EnsureFrame(WishlistGridView view, State state)
@@ -947,14 +823,9 @@ namespace AllQuestsCheckmarks.Patches
                 }
             }
 
-            if (state.Clock != null)
+            if (state.Dashed != null)
             {
-                state.Clock.gameObject.SetActive(false);
-            }
-
-            if (state.DashRoot != null)
-            {
-                state.DashRoot.SetActive(false);
+                state.Dashed.gameObject.SetActive(false);
             }
 
             if (state.Frame != null)

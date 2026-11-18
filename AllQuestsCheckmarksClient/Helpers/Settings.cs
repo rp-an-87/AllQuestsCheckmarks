@@ -7,6 +7,16 @@ namespace AllQuestsCheckmarks.Helpers
     internal static class Settings
     {
         // How a part of the overlay (border, glow) is drawn
+        // The corner where the dashed border is strongest
+        public enum EDashCorner
+        {
+            BottomLeft,
+            BottomRight,
+            TopLeft,
+            TopRight,
+            None,
+        }
+
         public enum EOverlayPart
         {
             Native,
@@ -34,7 +44,11 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
         public static ConfigEntry<bool>? OverlayDashedLater;
-        public static ConfigEntry<float>? OverlayClockGap;
+        public static ConfigEntry<bool>? RaidBuyIcon;
+        public static ConfigEntry<EDashCorner>? OverlayDashCorner;
+        public static ConfigEntry<float>? OverlayDashFade;
+        public static ConfigEntry<float>? OverlayDashLength;
+        public static ConfigEntry<float>? OverlayDashGap;
         public static ConfigEntry<float>? OverlayDashedStrength;
         public static ConfigEntry<bool>? OverlayIconMatchColor;
         public static ConfigEntry<int>? OverlayBorderThickness;
@@ -210,11 +224,38 @@ namespace AllQuestsCheckmarks.Helpers
                 "Whether the overlay icon (and the clock for later needs) has the same color as the overlay border, so it reads as one thing. Off: white"
             );
 
-            OverlayClockGap = general.BindConfig(
-                "Overlay clock spacing",
-                -0.15f,
-                "Space between the icon and the clock for later needs, as a fraction of the icon size (0 = the two icon squares touch, negative = they overlap a little, the picture usually has an empty edge)",
-                acceptableValue: new AcceptableValueRange<float>(-0.6f, 0.6f)
+            RaidBuyIcon = general.BindConfig(
+                "Show buyable items that are needed in raid",
+                true,
+                "Whether items you need but can simply buy get just their icon (in the can buy color, no border or glow) while in raid, " +
+                    "so they can be told apart from the ones you have to loot"
+            );
+
+            OverlayDashCorner = general.BindConfig(
+                "Dashed border strongest corner",
+                EDashCorner.BottomLeft,
+                "The corner where the dashed border of later needs is at its strongest; it fades toward the opposite corner. None = even all around"
+            );
+
+            OverlayDashFade = general.BindConfig(
+                "Dashed border fade",
+                0.25f,
+                "How visible the dashed border still is at the far corner (1 = no fade, 0 = fades out completely)",
+                acceptableValue: new AcceptableValueRange<float>(0f, 1f)
+            );
+
+            OverlayDashLength = general.BindConfig(
+                "Dash length",
+                3f,
+                "Length of one dash of the dashed border, in pixels",
+                acceptableValue: new AcceptableValueRange<float>(1f, 12f)
+            );
+
+            OverlayDashGap = general.BindConfig(
+                "Dash gap",
+                2f,
+                "Gap between two dashes of the dashed border, in pixels",
+                acceptableValue: new AcceptableValueRange<float>(1f, 12f)
             );
 
             OverlayDashedLater = general.BindConfig(
