@@ -51,7 +51,7 @@ namespace AllQuestsCheckmarks.Helpers
         // the details of every row start in the same column, set from the longest "label: figure" (about 10 px per character)
         private static string Layout(List<Row> rows)
         {
-            int column = rows.Max(r => (r.Label.Length + 2 + NumberFormat.Compact(r.Total).Length) * 10 + r.Suffix.Length * 7) + 16;
+            int column = rows.Max(r => (r.Label.Length + 2 + NumberFormat.Compact(r.Total).Length) * 10 + r.Suffix.Length * 5) + 8;
 
             return string.Join("\n", rows.Select(r =>
             {
