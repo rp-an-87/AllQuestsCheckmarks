@@ -119,11 +119,13 @@ namespace AllQuestsCheckmarks.Patches
         private static string Hex(UnityEngine.Color color) => "#" + UnityEngine.ColorUtility.ToHtmlStringRGB(color);
 
         // For needs that several items share, only the item's own needs are certain: those are listed, with "(at least)" when more is asked of the group
-        private static int[] Certain(int[] all, int[] own, out string suffix)
+        // An item with needs of its own lists only those, even when they are all covered (what the group still lacks is not this item's to get).
+        // Only an item that is nothing but part of a group has no number of its own: the group's is shown then
+        private static int[] Certain(int[] all, int[] own, bool hasOwnNeeds, out string suffix)
         {
             suffix = "";
 
-            if (own.Sum() == 0)
+            if (!hasOwnNeeds)
             {
                 return all;
             }
@@ -164,6 +166,7 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             List<string> blocks = [];
+            bool hasOwnNeeds = need.NeedFirBy.Sum() + need.NeedAnyBy.Sum() > 0;
 
             if (NeedsSnapshot.InRaid)
             {
@@ -189,14 +192,14 @@ namespace AllQuestsCheckmarks.Patches
                 }
 
                 blocks.Add(Checklist("aqc_header_keep", keep, "", Settings.OverlayKeepColor!.GetValue()));
-                int[] buy = Certain(need.BuyBy, need.FixedBuyBy, out string buySuffix);
+                int[] buy = Certain(need.BuyBy, need.FixedBuyBy, hasOwnNeeds, out string buySuffix);
                 blocks.Add(Checklist("aqc_header_buy", buy, "", Settings.OverlayBuyColor!.GetValue(), buySuffix));
             }
 
             // found in raid needs can't be bought: they are the same in a raid and in the hideout
-            int[] fir = Certain(need.FirBy, need.FixedFirBy, out string firSuffix);
+            int[] fir = Certain(need.FirBy, need.FixedFirBy, hasOwnNeeds, out string firSuffix);
             blocks.Add(Checklist("aqc_header_fir", fir, "", Settings.OverlayLootColor!.GetValue(), firSuffix));
-            int[] unbuyable = Certain(need.UnbuyableBy, need.FixedUnbuyableBy, out string unbuyableSuffix);
+            int[] unbuyable = Certain(need.UnbuyableBy, need.FixedUnbuyableBy, hasOwnNeeds, out string unbuyableSuffix);
             blocks.Add(Checklist("aqc_header_unbuyable", unbuyable, "", Settings.OverlayLootColor!.GetValue(), unbuyableSuffix));
 
             return string.Join("\n", blocks.Where(b => b.Length > 0));
