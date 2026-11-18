@@ -106,10 +106,11 @@ namespace AllQuestsCheckmarks.Helpers
                     "out of raid what you can hand in and what you still have to buy. Strong when needed now, dashed when needed later"
             );
 
-            OverlayLaterStrength = needs.BindConfig(
+            OverlayLaterStrength = look.BindConfig(
                 "Overlay strength for later needs",
                 1f,
                 "How strong the overlay is for items needed only for future quests or hideout upgrades (1 = same as needed now: they only differ by the dashed border)",
+                hide: true,
                 acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
             );
 
@@ -146,10 +147,11 @@ namespace AllQuestsCheckmarks.Helpers
                     "so you know not to sell them. The tooltip lists how many to keep"
             );
 
-            OverlayDashedLater = needs.BindConfig(
+            OverlayDashedLater = look.BindConfig(
                 "Dashed border for later needs",
                 true,
-                "Whether or not items needed only later get a dashed border instead of the solid one"
+                "Whether or not items needed only later get a dashed border instead of the solid one",
+                hide: true
             );
 
             OverlayInHideoutRequirements = needs.BindConfig(
@@ -232,7 +234,8 @@ namespace AllQuestsCheckmarks.Helpers
             CompactFirLabels = tooltip.BindConfig(
                 "Small FiR labels",
                 true,
-                "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey"
+                "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey",
+                hide: true
             );
 
             HideoutTextColor = tooltip.BindColor(
