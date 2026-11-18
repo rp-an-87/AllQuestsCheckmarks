@@ -23,3 +23,6 @@ Upstream files with edits: `QuestItemViewPanelPatch.cs` (the tooltip; the main p
 Settings: upstream's sections (1. General, 2. Colors, 3. Text, 9. Debug) are unchanged; ours are 4 to 8. Advanced settings (overlay look, testing) are hidden unless F12 shows advanced settings.
 
 Build changes: csproj uses `TarkovDir` (from an uncommitted `.csproj.user`) instead of assuming the repo sits in the game folder; deploys the DLL and the locales, keeping `.orig`/`.bak`.
+
+See `MERGING.md` for the step by step update from upstream, the conflict table and the settings ownership.
+Settings from upstream that only matter for the classic checkmarks are advanced unless "Classic colored checkmarks" is on (done in `SettingsFork`, upstream `Settings.cs` stays untouched). "Show only active quests" also applies to the overlays.
