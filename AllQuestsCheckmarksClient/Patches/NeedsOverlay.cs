@@ -272,6 +272,7 @@ namespace AllQuestsCheckmarks.Patches
 
             float later = Settings.OverlayLaterStrength!.Value;
             NeedsSnapshot.EStrength kind;
+            int[]? keepSources = null;
 
             if (NeedsSnapshot.InRaid)
             {
@@ -322,6 +323,25 @@ namespace AllQuestsCheckmarks.Patches
                     color = Settings.OverlayBuyColor!.GetValue();
                     iconOnly = true;
                 }
+                else if (!NeedsSnapshot.InRaid && Settings.KeepIcon!.Value && viewType == EItemViewType.Inventory)
+                {
+                    // in your stash: copies earmarked for a later need, so they do not get sold. A non-FiR copy is only kept for needs that take any copy
+                    int[] keep = new int[NeedsSnapshot.Sources];
+                    for (int i = 0; i < keep.Length; i++)
+                    {
+                        keep[i] = need.KeepAnyBy[i] + (notFirCopy ? 0 : need.KeepFirBy[i]);
+                    }
+
+                    if (keep.Sum() == 0)
+                    {
+                        return false;
+                    }
+
+                    keepSources = keep;
+                    kind = keep[NeedsSnapshot.HideoutNow] > 0 ? NeedsSnapshot.EStrength.Now : NeedsSnapshot.EStrength.Later;
+                    color = Settings.OverlayKeepColor!.GetValue();
+                    iconOnly = true;
+                }
                 else
                 {
                     return false;
@@ -330,8 +350,8 @@ namespace AllQuestsCheckmarks.Patches
 
             strength = kind == NeedsSnapshot.EStrength.Now ? 1f : later;
             // the icon says why: only the sources that are actually missing and that you can act on (in raid what to loot, out of raid what to buy)
-            int[] missing = NeedsSnapshot.InRaid && !iconOnly ? need.LootBy : need.BuyBy;
-            bool withFuture = NeedsSnapshot.InRaid && !iconOnly || Settings.BuyFutureNeeds!.Value;
+            int[] missing = keepSources ?? (NeedsSnapshot.InRaid && !iconOnly ? need.LootBy : need.BuyBy);
+            bool withFuture = keepSources != null || NeedsSnapshot.InRaid && !iconOnly || Settings.BuyFutureNeeds!.Value;
             bool fromQuest = missing[NeedsSnapshot.QuestNow] > 0 || withFuture && missing[NeedsSnapshot.QuestLater] > 0;
             bool fromHideout = missing[NeedsSnapshot.HideoutNow] > 0 || withFuture && missing[NeedsSnapshot.HideoutLater] > 0;
 

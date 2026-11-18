@@ -47,6 +47,8 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayIconScale;
         public static ConfigEntry<bool>? OverlayDashedLater;
         public static ConfigEntry<bool>? RaidBuyIcon;
+        public static ConfigEntry<bool>? KeepIcon;
+        public static ConfigEntry<Color>? OverlayKeepColor;
         public static ConfigEntry<EDashCorner>? OverlayDashCorner;
         public static ConfigEntry<float>? OverlayDashFade;
         public static ConfigEntry<float>? OverlayDashLength;
@@ -233,6 +235,13 @@ namespace AllQuestsCheckmarks.Helpers
                     "so they can be told apart from the ones you have to loot"
             );
 
+            KeepIcon = general.BindConfig(
+                "Show items to keep in the stash",
+                true,
+                "Whether items you hold that are earmarked for a later quest or a hideout upgrade get just their icon (in the keep color, no border) in your stash, " +
+                    "so you know not to sell them. The tooltip lists how many to keep"
+            );
+
             OverlayDashCorner = general.BindConfig(
                 "Dashed border strong corners",
                 EDashCorner.Diagonal,
@@ -365,6 +374,12 @@ namespace AllQuestsCheckmarks.Helpers
                 "Overlay color - collector",
                 "#f22626",
                 "Color of the overlay on Collector items you don't have yet (in raid)"
+            );
+
+            OverlayKeepColor = colors.BindColor(
+                "Overlay color - keep",
+                "#4aa8ff",
+                "Color of the icon on items you hold that you should keep for later needs (in your stash)"
             );
 
             OverlayLootColor = colors.BindColor(

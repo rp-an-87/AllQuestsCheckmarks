@@ -118,6 +118,15 @@ namespace AllQuestsCheckmarks.Patches
                 }
 
                 blocks.Add(Checklist("aqc_header_buy", need.BuyBy, ""));
+
+                // copies earmarked for later: do not sell them
+                int[] keep = new int[NeedsSnapshot.Sources];
+                for (int i = 0; i < keep.Length; i++)
+                {
+                    keep[i] = need.KeepFirBy[i] + need.KeepAnyBy[i];
+                }
+
+                blocks.Add(Checklist("aqc_header_keep", keep, ""));
             }
 
             // found in raid needs can't be bought: they are the same in a raid and in the hideout

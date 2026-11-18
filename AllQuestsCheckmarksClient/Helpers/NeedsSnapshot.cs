@@ -60,6 +60,10 @@ namespace AllQuestsCheckmarks.Helpers
             // the two parts of LootBy: FiR copies missing, and non-FiR copies missing for items that can't be bought
             public readonly int[] FirBy = new int[Sources];
             public readonly int[] UnbuyableBy = new int[Sources];
+
+            // copies you hold that are earmarked for a need (not the ones for a quest you can hand in right now): found in raid needs, and needs that take any copy
+            public readonly int[] KeepFirBy = new int[Sources];
+            public readonly int[] KeepAnyBy = new int[Sources];
             public int HandInCount;
         }
 
@@ -443,6 +447,12 @@ namespace AllQuestsCheckmarks.Helpers
                         item.HandInAnyCopy |= !need.Fir;
                     }
 
+                    // copies earmarked for later needs (and for upgrades): do not sell these
+                    if (need.Source != QuestNow && need.Given.TryGetValue(target, out int kept) && kept > 0)
+                    {
+                        (need.Fir ? item.KeepFirBy : item.KeepAnyBy)[need.Source] += kept;
+                    }
+
                     if (shared)
                     {
                         if (!_pools.TryGetValue(target, out List<PoolInfo> list))
@@ -488,7 +498,8 @@ namespace AllQuestsCheckmarks.Helpers
 
                 need.Buy = Strength(buyForOverlay);
 
-                if (need.HandIn || need.CollectorMissing || need.LootBy.Any(n => n > 0) || need.BuyBy.Any(n => n > 0))
+                if (need.HandIn || need.CollectorMissing || need.LootBy.Any(n => n > 0) || need.BuyBy.Any(n => n > 0)
+                    || need.KeepFirBy.Any(n => n > 0) || need.KeepAnyBy.Any(n => n > 0))
                 {
                     _needs.Add(entry.Key, need);
                 }
@@ -502,7 +513,7 @@ namespace AllQuestsCheckmarks.Helpers
 
                 for (int i = 0; i < Sources; i++)
                 {
-                    sum += (n.LootBy[i] * 7 + n.BuyBy[i] * 11) * (i + 1);
+                    sum += (n.LootBy[i] * 7 + n.BuyBy[i] * 11 + (n.KeepFirBy[i] + n.KeepAnyBy[i]) * 13) * (i + 1);
                 }
 
                 hash = unchecked(hash + entry.Key.GetHashCode() * 31 + sum * 37);
