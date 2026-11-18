@@ -66,6 +66,12 @@ namespace AllQuestsCheckmarks.Helpers
             public readonly int[] KeepFirBy = new int[Sources];
             public readonly int[] KeepAnyBy = new int[Sources];
             public int HandInCount;
+
+            // how much the item is needed in all per source (what is left to hand in or build, held or not): found in raid needs and needs that take any copy.
+            // Left out for quest conditions that several items share (they have no per item number)
+            public readonly int[] NeedFirBy = new int[Sources];
+            public readonly int[] NeedAnyBy = new int[Sources];
+            public bool Shared;
         }
 
         // A quest condition that accepts several items for one shared count, as seen from one of its items
@@ -403,6 +409,12 @@ namespace AllQuestsCheckmarks.Helpers
 
                     item.FromQuest |= !need.Hideout;
                     item.FromHideout |= need.Hideout;
+                    item.Shared |= shared;
+
+                    if (!shared)
+                    {
+                        (need.Fir ? item.NeedFirBy : item.NeedAnyBy)[need.Source] += need.Remaining;
+                    }
 
                     if (need.Collector)
                     {
@@ -486,7 +498,7 @@ namespace AllQuestsCheckmarks.Helpers
                 need.BuyAll = Strength(need.BuyBy);
 
                 if (need.HandIn || need.CollectorMissing || need.LootBy.Any(n => n > 0) || need.BuyBy.Any(n => n > 0)
-                    || need.KeepFirBy.Any(n => n > 0) || need.KeepAnyBy.Any(n => n > 0))
+                    || need.KeepFirBy.Any(n => n > 0) || need.KeepAnyBy.Any(n => n > 0) || need.NeedFirBy.Any(n => n > 0) || need.NeedAnyBy.Any(n => n > 0))
                 {
                     _needs.Add(entry.Key, need);
                 }

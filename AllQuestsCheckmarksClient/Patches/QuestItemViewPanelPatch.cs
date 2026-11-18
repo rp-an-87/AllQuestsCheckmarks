@@ -79,7 +79,7 @@ namespace AllQuestsCheckmarks.Patches
 
             bool showNonFir = Settings.IncludeNonFir!.Value;
             StashHelper.ItemsCount inStash = NeedsSnapshot.Held(item.TemplateId);
-            string stashLine = string.Format("aqc_in_stash".Localized(null), NumberFormat.Compact(inStash.Total), NumberFormat.Compact(inStash.Fir));
+            string stashLine = StockLines.Build(item.TemplateId);
 
             bool neededForActive = false;
             bool neededForFuture = false;
@@ -325,12 +325,8 @@ namespace AllQuestsCheckmarks.Patches
 
             // "Total needed" is only a fair comparison with "In Stash" when every need of the item is its own: with a shared quest
             // condition (any of several items) it would be incomplete, so it is left out for every such item
+            // (now part of the stash block: StockLines)
             string totalLine = "";
-            if (pools.Count == 0 && (totalNeededFir > 0 || showNonFirTotal && totalNeededNonFir > 0))
-            {
-                totalLine = string.Format((showNonFirTotal ? "aqc_total_needed_alt" : "aqc_total_needed").Localized(null),
-                       NumberFormat.Compact(totalNeededFir), NumberFormat.Compact(totalNeededNonFir));
-            }
 
             // every section starts with a line break
             // what you can act on now first, then what is needed later: smaller, behind a separator

@@ -27,7 +27,7 @@ Almost everything we added is in new files that upstream does not have, so those
 | `Helpers/Settings.cs` | Three lines: `partial` and one `InitFork(config);` call before `config.SettingChanged += ...` | Re-add; take everything else from upstream |
 | `AllQuestsCheckmarksClient.csproj` | `TarkovDir` from `.csproj.user`, deploys DLL and locales, keeps `.orig`/`.bak` | Keep ours |
 
-New files (ours, no upstream counterpart): `NeedsSnapshot`, `NeedsOverlay`, `DashedBorder`, `OverlayIcons`, `HideoutNeedsData` (hideout requirements, was read from the Wishlist Extended fork before 2026-11-18), `HideoutUpgradeZonePatch`, `ItemHoverPatches`, `NumberFormat`, `TooltipSeparator`, `AllQuestsCheckmarksApi`, `SettingsFork`.
+New files (ours, no upstream counterpart): `NeedsSnapshot`, `NeedsOverlay`, `DashedBorder`, `OverlayIcons`, `HideoutNeedsData` (hideout requirements, was read from the Wishlist Extended fork before 2026-11-18), `HideoutUpgradeZonePatch`, `ItemHoverPatches`, `NumberFormat`, `StockLines` (the In Stash / Needed / Missing block), `TooltipSeparator`, `AllQuestsCheckmarksApi`, `SettingsFork`.
 
 ## What to check after a merge
 
