@@ -254,7 +254,7 @@ namespace AllQuestsCheckmarks.Patches
                 return false;
             }
 
-            if (viewType == EItemViewType.Hideout && !inRequirements && !Settings.OverlayInHideoutRequirements!.Value || !NeedsSnapshot.TryGet(_templateRef(view), out NeedsSnapshot.ItemNeed need))
+            if (viewType == EItemViewType.Hideout && !inRequirements || !NeedsSnapshot.TryGet(_templateRef(view), out NeedsSnapshot.ItemNeed need))
             {
                 return false;
             }
