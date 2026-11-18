@@ -295,7 +295,7 @@ namespace AllQuestsCheckmarks.Patches
                                 line += "\n" + (futurePass ? "aqc_hideout_future" : "aqc_hideout").Localized(null);
                             }
 
-                            line += $"\n{indent}<color={hideoutColor}>{hideout.Area[i]} lvl {hideout.Level[i]}</color>: {hideout.Quantity[i]} "
+                            line += $"\n{indent}<color={hideoutColor}>{hideout.Area[i]} lvl {hideout.Level[i]}</color>: {NumberFormat.Compact(hideout.Quantity[i])} "
                                 + FirLabel(hideout.Fir[i]);
 
                             if (futurePass) hideoutLaterTooltip += line; else hideoutTooltip += line;
