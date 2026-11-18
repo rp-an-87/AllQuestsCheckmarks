@@ -17,7 +17,11 @@ namespace AllQuestsCheckmarks.Helpers
         private const string NonFirColor = "#8A8A8A";
         private const string GainColor = "#C58BFF";
 
-        private static string Num(int n) => NumberFormat.Compact(n);
+        private const string WhiteColor = "#FFFFFF";
+        private const string MissingColor = "#FF6666";
+
+        // figures are white, not the blue of the tooltip text
+        private static string Num(int n, string color = WhiteColor) => $"<color={color}>{NumberFormat.Compact(n)}</color>";
 
         private static string Small(string text) => "<size=80%>" + text + "</size>";
 
@@ -41,11 +45,24 @@ namespace AllQuestsCheckmarks.Helpers
             return string.Join(" · ", parts);
         }
 
-        private static string Line(string label, int total, string details)
+        private class Row(string label, int total, string details, string color = WhiteColor)
         {
-            string line = $"{label}: {Num(total)}";
+            public string Label = label;
+            public int Total = total;
+            public string Details = details;
+            public string Color = color;
+        }
 
-            return details.Length > 0 ? line + "<space=1em>" + Small(details) : line;
+        // the details of every row start in the same column, set from the longest "label: figure" (about 10 px per character)
+        private static string[] Layout(List<Row> rows)
+        {
+            int column = rows.Max(r => r.Label.Length + 2 + NumberFormat.Compact(r.Total).Length) * 10 + 16;
+
+            return [.. rows.Select(r =>
+            {
+                string line = $"{r.Label}: {Num(r.Total, r.Color)}";
+                return r.Details.Length > 0 ? line + $"<pos={column}px>" + Small(r.Details) : line;
+            })];
         }
 
         public static string Build(MongoID id)
@@ -61,7 +78,8 @@ namespace AllQuestsCheckmarks.Helpers
             // what a raid would add (the setting that counts the inventory in the stash number makes it part of it already)
             StashHelper.ItemsCount carried = NeedsSnapshot.InRaid && !Settings.IncludeRaidItems!.Value ? StashHelper.GetCarried(id) : new StashHelper.ItemsCount();
 
-            List<string> lines = [Line("aqc_stock_in_stash".Localized(null), stash.Total, Parts(stash.Fir, stash.NonFir))];
+            Row held = new("aqc_stock_in_stash".Localized(null), stash.Total, Parts(stash.Fir, stash.NonFir));
+            List<Row> rows = [];
 
             if (needFir + needAny > 0)
             {
@@ -75,7 +93,7 @@ namespace AllQuestsCheckmarks.Helpers
                     details += $" <color={NonFirColor}>({Num(now)} {"aqc_stock_now".Localized(null)})</color>";
                 }
 
-                lines.Add(Line("aqc_stock_needed".Localized(null), needFir + needAny, details));
+                rows.Add(new Row("aqc_stock_needed".Localized(null), needFir + needAny, details));
             }
 
             if (missFir + missNon > 0)
@@ -84,10 +102,13 @@ namespace AllQuestsCheckmarks.Helpers
                 int coveredFir = Math.Min(missFir, carried.Fir);
                 int coveredNon = Math.Min(missNon, carried.NonFir + carried.Fir - coveredFir);
 
-                lines.Add(Line("aqc_stock_missing".Localized(null), missFir + missNon, Parts(missFir, missNon, coveredFir, coveredNon)));
+                rows.Add(new Row("aqc_stock_missing".Localized(null), missFir + missNon, Parts(missFir, missNon, coveredFir, coveredNon), MissingColor));
             }
 
-            return string.Join("\n", lines);
+            // what you hold, a light separator, then what is needed and missing; one column for the details of all rows
+            string[] laid = Layout([held, .. rows]);
+
+            return rows.Count == 0 ? laid[0] : laid[0] + "\n" + TooltipSeparator.Soft + "\n" + string.Join("\n", laid.Skip(1));
         }
     }
 }
