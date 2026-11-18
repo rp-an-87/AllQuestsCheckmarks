@@ -47,6 +47,7 @@ namespace AllQuestsCheckmarks.Helpers
         // Tooltip
         public static ConfigEntry<bool>? HoverItemTooltip;
         public static ConfigEntry<bool>? SeparatedTooltip;
+        public static ConfigEntry<bool>? HideLaterInRaid;
         public static ConfigEntry<bool>? ActionLine;
         public static ConfigEntry<bool>? CompactFirLabels;
         public static ConfigEntry<Color>? HideoutTextColor;
@@ -243,6 +244,13 @@ namespace AllQuestsCheckmarks.Helpers
                 true,
                 "Whether or not to use the layout: found in raid label (green), separator, stash and totals, separator, quests and hideout. " +
                     "Off keeps the original single block"
+            );
+
+            HideLaterInRaid = tooltip.ForkBind(
+                "Hide later needs in the tooltip (in raid)",
+                false,
+                "Whether or not the lists of future quests and future hideout upgrades are left out of the tooltip while in raid. " +
+                    "Only the tooltip text changes: the numbers, the checklist and the overlays count everything as before"
             );
 
             ActionLine = tooltip.ForkBind(

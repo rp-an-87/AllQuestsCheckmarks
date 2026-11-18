@@ -332,6 +332,13 @@ namespace AllQuestsCheckmarks.Patches
             // every section starts with a line break
             // what you can act on now first, then what is needed later: smaller, behind a separator
             string sections = activeQuestsTooltip + hideoutTooltip;
+            // display only: the later lists can be left out in raid, nothing is counted differently
+            if (Settings.HideLaterInRaid!.Value && NeedsSnapshot.InRaid)
+            {
+                futureQuestsTooltip = "";
+                hideoutLaterTooltip = "";
+            }
+
             string laterSections = futureQuestsTooltip + (futureQuestsTooltip.Length > 0 && hideoutLaterTooltip.Length > 0 ? "\n<size=5> </size>" : "") + hideoutLaterTooltip;
 
             if (laterSections.Length > 0)
