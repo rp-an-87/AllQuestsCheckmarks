@@ -120,14 +120,14 @@ namespace AllQuestsCheckmarks.Patches
 
         // For needs that several items share, only the item's own needs are certain: those are listed, with "(at least)" when more is asked of the group
         // An item with needs of its own lists only those, even when they are all covered (what the group still lacks is not this item's to get).
-        // Only an item that is nothing but part of a group has no number of its own: the group's is shown then
+        // An item that is nothing but part of a group has no number of its own: nothing is listed (the shared quests above say what they still lack)
         private static int[] Certain(int[] all, int[] own, bool hasOwnNeeds, out string suffix)
         {
             suffix = "";
 
             if (!hasOwnNeeds)
             {
-                return all;
+                return new int[NeedsSnapshot.Sources];
             }
 
             if (all.Sum() > own.Sum())
