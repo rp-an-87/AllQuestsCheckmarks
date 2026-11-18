@@ -15,6 +15,7 @@ namespace AllQuestsCheckmarks.Helpers
     {
         private const string WhiteColor = "#FFFFFF";
         private const string MissingColor = "#FF6666";
+        private const string FilledColor = "#66FF66";
         private const string FirColor = "#FFFF66";
         private const string NonFirColor = "#8A8A8A";
         private const string RaidColor = "#C58BFF";
@@ -34,8 +35,8 @@ namespace AllQuestsCheckmarks.Helpers
             return raid > 0 ? text + $" <size=75%><b><color={RaidColor}>(+{NumberFormat.Compact(raid)})</color></b></size>" : text;
         }
 
-        // the stash and needed numbers do not fill a need of that kind
-        private static string Judge(bool filled, bool filledWithRaid) => filled ? WhiteColor : filledWithRaid ? RaidColor : MissingColor;
+        // green when the stash fills the need, purple when only what you carry in the raid would, red when neither
+        private static string Judge(bool filled, bool filledWithRaid) => filled ? FilledColor : filledWithRaid ? RaidColor : MissingColor;
 
         private class Row(string label, int total, string totalColor, string details, string suffix = "")
         {
