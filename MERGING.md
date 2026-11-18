@@ -27,7 +27,7 @@ Almost everything we added is in new files that upstream does not have, so those
 | `Helpers/Settings.cs` | Three lines: `partial` and one `InitFork(config);` call before `config.SettingChanged += ...` | Re-add; take everything else from upstream |
 | `AllQuestsCheckmarksClient.csproj` | `TarkovDir` from `.csproj.user`, deploys DLL and locales, keeps `.orig`/`.bak` | Keep ours |
 
-New files (ours, no upstream counterpart): `NeedsSnapshot`, `NeedsOverlay`, `DashedBorder`, `OverlayIcons`, `WishlistBridge`, `ItemHoverPatches`, `NumberFormat`, `TooltipSeparator`, `AllQuestsCheckmarksApi`, `SettingsFork`.
+New files (ours, no upstream counterpart): `NeedsSnapshot`, `NeedsOverlay`, `DashedBorder`, `OverlayIcons`, `HideoutNeedsData` (hideout requirements, was read from the Wishlist Extended fork before 2026-11-18), `HideoutUpgradeZonePatch`, `ItemHoverPatches`, `NumberFormat`, `TooltipSeparator`, `AllQuestsCheckmarksApi`, `SettingsFork`.
 
 ## What to check after a merge
 
@@ -45,7 +45,7 @@ New files (ours, no upstream counterpart): `NeedsSnapshot`, `NeedsOverlay`, `Das
 | 1. General: Squad quests | upstream | tooltip and classic only; overlays have no squad case yet |
 | 2. Colors: checkmark, non-FiR, collector, enough, squad, custom quest colour | upstream | classic only; advanced unless classic is on (done in `SettingsFork.InitFork`, upstream file untouched) |
 | 3. Text, 9. Debug | upstream | used |
-| 4. Needs and overlays | fork | see the in-game descriptions |
+| 4. Needs and overlays | fork | see the in-game descriptions. Hideout: "Include hideout upgrades", "Locked upgrades count as later" |
 | 5. Overlay colors, 6. Tooltip, 7. Overlay look (advanced), 8. Testing (advanced) | fork | used |
 
 Config migration: renamed or moved fork keys are not migrated by code. When a key changes, edit the owner's `BepInEx\config\com.zgfuedkx.allquestscheckmarks.cfg` with a backup first (see git history of this file for earlier renames).

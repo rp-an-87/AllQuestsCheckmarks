@@ -53,6 +53,7 @@ namespace AllQuestsCheckmarks
             new CheckmarkHoverPatch().Enable();
             new SimpleTooltipShowPatch().Enable();
             NeedsOverlay.EnablePatches();
+            new HideoutUpgradeZonePatch().Enable();
             new UpdateApplicationLanguagePatch().Enable();
 
             LogSource.LogInfo($"AllQuestCheckmarks by ZGFueDkx version {Info.Metadata.Version} started");

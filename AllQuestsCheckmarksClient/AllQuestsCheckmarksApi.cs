@@ -70,7 +70,7 @@ namespace AllQuestsCheckmarks
 
         public static bool ShowsHideoutInTooltip()
         {
-            return Settings.IncludeHideout!.Value && Settings.HoverItemTooltip!.Value && WishlistBridge.Available;
+            return Settings.IncludeHideout!.Value && Settings.HoverItemTooltip!.Value;
         }
     }
 }

@@ -254,7 +254,7 @@ namespace AllQuestsCheckmarks.Patches
             int hideoutFir = 0;
             int hideoutNonFir = 0;
 
-            if (Settings.IncludeHideout!.Value && WishlistBridge.TryGetHideoutNeeds(item.StringTemplateId, out WishlistBridge.HideoutNeeds hideout))
+            if (Settings.IncludeHideout!.Value && HideoutNeedsData.TryGet(item.StringTemplateId, out HideoutNeedsData.ItemNeeds hideout))
             {
                 for (int i = 0; i < hideout.Quantity.Length; i++)
                 {

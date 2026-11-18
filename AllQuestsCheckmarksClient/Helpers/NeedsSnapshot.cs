@@ -298,7 +298,7 @@ namespace AllQuestsCheckmarks.Helpers
 
             // hideout upgrades: from the Wishlist Extended fork
             if (Settings.IncludeHideout!.Value &&
-                WishlistBridge.TryGetAllHideoutNeeds(out string[] hItems, out int[] hQty, out bool[] hFir, out bool[] hFuture))
+                HideoutNeedsData.TryGetAll(out string[] hItems, out int[] hQty, out bool[] hFir, out bool[] hFuture))
             {
                 for (int i = 0; i < hItems.Length; i++)
                 {

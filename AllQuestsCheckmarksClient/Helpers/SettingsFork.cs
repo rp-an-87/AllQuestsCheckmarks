@@ -22,6 +22,7 @@ namespace AllQuestsCheckmarks.Helpers
 
         // Needs and overlays
         public static ConfigEntry<bool>? IncludeHideout;
+        public static ConfigEntry<bool>? HideoutLockedAsLater;
         public static ConfigEntry<bool>? SharedConditions;
         public static ConfigEntry<bool>? CheckmarkOnNonFir;
         public static ConfigEntry<bool>? UseOverlays;
@@ -90,11 +91,17 @@ namespace AllQuestsCheckmarks.Helpers
              * NEEDS AND OVERLAYS
              */
             IncludeHideout = needs.ForkBind(
-                "Include hideout upgrades (needs Wishlist Extended fork)",
+                "Include hideout upgrades",
                 true,
                 "Whether or not hideout upgrade requirements (FiR and non-FiR) count as needs, in the tooltip and in the overlays. " +
-                    "Needs the Wishlist Extended fork; has no effect without it. Independent of that mod's 'Hideout upgrades wishlist mode': " +
-                    "every remaining upgrade counts here, whatever the wishlist settings are"
+                    "Every remaining upgrade of every area counts; the one in progress is already paid for"
+            );
+
+            HideoutLockedAsLater = needs.ForkBind(
+                "Locked upgrades count as later",
+                true,
+                "Whether or not an upgrade you can not start yet (a skill, trader level or other area is missing) counts as a later need " +
+                    "(dashed, in the later block of the tooltip) instead of a current one"
             );
 
             SharedConditions = needs.ForkBind(
@@ -394,7 +401,11 @@ namespace AllQuestsCheckmarks.Helpers
             ApplyClassicOnly();
             ClassicCheckmarks!.SettingChanged += (_, _) => ApplyClassicOnly();
 
-            config.SettingChanged += (_, _) => NeedsSnapshot.Invalidate();
+            config.SettingChanged += (_, _) =>
+            {
+                HideoutNeedsData.Invalidate();
+                NeedsSnapshot.Invalidate();
+            };
         }
     }
 }
