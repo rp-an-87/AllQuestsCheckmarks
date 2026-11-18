@@ -327,7 +327,8 @@ namespace AllQuestsCheckmarks.Patches
                 {
                     int heldNow = need.KeepAnyBy[NeedsSnapshot.HideoutNow] + (notFirCopy ? 0 : need.KeepFirBy[NeedsSnapshot.HideoutNow]);
 
-                    if (heldNow > 0)
+                    // only when the copies cover every open upgrade: a nut or two of the four needed is still something to buy
+                    if (heldNow > 0 && need.BuyBy[NeedsSnapshot.HideoutNow] + need.LootBy[NeedsSnapshot.HideoutNow] == 0)
                     {
                         int[] keepNow = new int[NeedsSnapshot.Sources];
                         keepNow[NeedsSnapshot.HideoutNow] = heldNow;
