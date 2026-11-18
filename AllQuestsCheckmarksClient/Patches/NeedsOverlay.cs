@@ -356,7 +356,9 @@ namespace AllQuestsCheckmarks.Patches
                     int[] keep = new int[NeedsSnapshot.Sources];
                     for (int i = 0; i < keep.Length; i++)
                     {
-                        keep[i] = need.KeepAnyBy[i] + (notFirCopy ? 0 : need.KeepFirBy[i]);
+                        // copies for an open upgrade that is not covered yet are not shown at a glance: more is needed, so it is neither use now nor save
+                        bool openUnmet = i == NeedsSnapshot.HideoutNow && need.BuyBy[i] + need.LootBy[i] > 0;
+                        keep[i] = openUnmet ? 0 : need.KeepAnyBy[i] + (notFirCopy ? 0 : need.KeepFirBy[i]);
                     }
 
                     if (keep.Sum() == 0)
