@@ -318,8 +318,20 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             strength = kind == NeedsSnapshot.EStrength.Now ? 1f : later;
-            group = need.FromQuest && need.FromHideout ? EWishlistGroup.Other : need.FromQuest ? EWishlistGroup.Quests : EWishlistGroup.Hideout;
-            icon = need.FromQuest && need.FromHideout ? EIcon.Both : EIcon.Group;
+            // the icon says why: only the sources that are actually missing and that you can act on (in raid what to loot, out of raid what to buy)
+            int[] missing = NeedsSnapshot.InRaid ? need.LootBy : need.BuyBy;
+            bool withFuture = NeedsSnapshot.InRaid || Settings.BuyFutureNeeds!.Value;
+            bool fromQuest = missing[NeedsSnapshot.QuestNow] > 0 || withFuture && missing[NeedsSnapshot.QuestLater] > 0;
+            bool fromHideout = missing[NeedsSnapshot.HideoutNow] > 0 || withFuture && missing[NeedsSnapshot.HideoutLater] > 0;
+
+            if (!fromQuest && !fromHideout)
+            {
+                fromQuest = need.FromQuest;
+                fromHideout = need.FromHideout;
+            }
+
+            group = fromQuest && fromHideout ? EWishlistGroup.Other : fromQuest ? EWishlistGroup.Quests : EWishlistGroup.Hideout;
+            icon = fromQuest && fromHideout ? EIcon.Both : EIcon.Group;
             return true;
         }
 
