@@ -335,12 +335,13 @@ namespace AllQuestsCheckmarks.Patches
             // every section starts with a line break
             // what you can act on now first, then what is needed later: smaller, behind a separator
             string sections = activeQuestsTooltip + hideoutTooltip;
-            string laterSections = futureQuestsTooltip + hideoutLaterTooltip;
+            string laterSections = futureQuestsTooltip + (futureQuestsTooltip.Length > 0 && hideoutLaterTooltip.Length > 0 ? "\n<size=5> </size>" : "") + hideoutLaterTooltip;
 
             if (laterSections.Length > 0)
             {
-                sections += separated
-                    ? "\n" + TooltipSeparator.Soft + "<size=85%>" + laterSections + "</size>"
+                // nothing current above it: the solid line before the sections already separates
+                sections += separated && sections.Length > 0
+                    ? "\n<size=5> </size>\n" + TooltipSeparator.Soft + "<size=85%>" + laterSections + "</size>"
                     : "<size=85%>" + laterSections + "</size>";
             }
 

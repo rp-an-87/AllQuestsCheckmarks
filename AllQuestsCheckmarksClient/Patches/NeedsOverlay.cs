@@ -334,7 +334,6 @@ namespace AllQuestsCheckmarks.Patches
                         keepSources = keepNow;
                         kind = NeedsSnapshot.EStrength.Now;
                         color = Settings.OverlayKeepColor!.GetValue();
-                        iconOnly = true;
                     }
                 }
             }
