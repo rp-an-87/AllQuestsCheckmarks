@@ -302,10 +302,10 @@ namespace AllQuestsCheckmarks.Patches
                 kind = need.Loot;
                 color = Settings.OverlayLootColor!.GetValue();
 
-                // missing found in raid copies only: a non-FiR copy is no use for those, so there is nothing to do with it
+                // missing found in raid copies only: a non-FiR copy is no use for those, so nothing to loot with it (it can still show the buy icon for needs that take any copy)
                 if (kind != NeedsSnapshot.EStrength.None && notFirCopy && need.FirBy.Sum() > 0 && need.UnbuyableBy.Sum() == 0)
                 {
-                    return false;
+                    kind = NeedsSnapshot.EStrength.None;
                 }
             }
             else
