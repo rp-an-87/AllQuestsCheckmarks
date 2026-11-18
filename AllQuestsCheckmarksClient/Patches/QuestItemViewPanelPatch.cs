@@ -359,7 +359,7 @@ namespace AllQuestsCheckmarks.Patches
                 // label (found in raid, or this copy is not FiR), separator, stash and totals, separator, quests and hideout
                 string label = foundInRaidLine.Length > 0 ? foundInRaidLine : notFirLine;
 
-                ____tooltipText = label.Length > 0 ? label + "\n" + TooltipSeparator.Line + "\n" : "";
+                ____tooltipText = (label.Length > 0 ? label + "\n" : "") + TooltipSeparator.Line + "\n";
                 ____tooltipText += stashLine + (totalLine.Length > 0 ? "\n" + totalLine : "");
 
                 if (sections.Length > 0)

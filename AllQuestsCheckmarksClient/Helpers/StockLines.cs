@@ -31,7 +31,8 @@ namespace AllQuestsCheckmarks.Helpers
             string word = (fir ? "aqc_fir" : "aqc_nonfir").Localized(null);
             string text = $"{Num(number)} <color={(fir ? FirColor : NonFirColor)}>{word}</color>";
 
-            return gain > 0 ? text + $" <b><color={GainColor}>(+{Num(gain)})</color></b>" : text;
+            // the one figure that is not white: what the raid adds, purple and smaller
+            return gain > 0 ? text + $" <size=75%><b><color={GainColor}>(+{NumberFormat.Compact(gain)})</color></b></size>" : text;
         }
 
         // "5 FiR · 8 Non-FiR": the kinds that are there
@@ -68,12 +69,15 @@ namespace AllQuestsCheckmarks.Helpers
         public static string Build(MongoID id)
         {
             StashHelper.ItemsCount stash = NeedsSnapshot.Held(id);
-            bool haveNeed = NeedsSnapshot.TryGet(id, out NeedsSnapshot.ItemNeed need) && !need.Shared;
+            bool haveNeed = NeedsSnapshot.TryGet(id, out NeedsSnapshot.ItemNeed need);
+
+            // a quest condition that several items share has no fixed number for this item: what is counted is what the other needs fix, so "at least"
+            bool shared = haveNeed && need.Shared;
 
             int needFir = haveNeed ? need.NeedFirBy.Sum() : 0;
             int needAny = haveNeed ? need.NeedAnyBy.Sum() : 0;
-            int missFir = haveNeed ? need.FirBy.Sum() : 0;
-            int missNon = haveNeed ? need.BuyBy.Sum() + need.UnbuyableBy.Sum() : 0;
+            int missFir = haveNeed && !shared ? need.FirBy.Sum() : 0;
+            int missNon = haveNeed && !shared ? need.BuyBy.Sum() + need.UnbuyableBy.Sum() : 0;
 
             // what a raid would add (the setting that counts the inventory in the stash number makes it part of it already)
             StashHelper.ItemsCount carried = NeedsSnapshot.InRaid && !Settings.IncludeRaidItems!.Value ? StashHelper.GetCarried(id) : new StashHelper.ItemsCount();
@@ -93,7 +97,7 @@ namespace AllQuestsCheckmarks.Helpers
                     details += $" <color={NonFirColor}>({Num(now)} {"aqc_stock_now".Localized(null)})</color>";
                 }
 
-                rows.Add(new Row("aqc_stock_needed".Localized(null), needFir + needAny, details));
+                rows.Add(new Row((shared ? "aqc_stock_needed_min" : "aqc_stock_needed").Localized(null), needFir + needAny, details));
             }
 
             if (missFir + missNon > 0)
