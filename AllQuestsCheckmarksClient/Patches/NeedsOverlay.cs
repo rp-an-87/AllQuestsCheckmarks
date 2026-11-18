@@ -323,7 +323,7 @@ namespace AllQuestsCheckmarks.Patches
                 color = Settings.OverlayBuyColor!.GetValue();
 
                 // a copy in your stash that fills the upgrade you can start now: that is "keep, needed now", not the buy marker of the later needs
-                if (Settings.KeepIcon!.Value && viewType == EItemViewType.Inventory)
+                if (Settings.KeepNow!.Value && viewType == EItemViewType.Inventory)
                 {
                     int heldNow = need.KeepAnyBy[NeedsSnapshot.HideoutNow] + (notFirCopy ? 0 : need.KeepFirBy[NeedsSnapshot.HideoutNow]);
 
@@ -342,9 +342,11 @@ namespace AllQuestsCheckmarks.Patches
             if (kind == NeedsSnapshot.EStrength.None)
             {
                 // in raid: nothing to loot, but something you can simply buy: just the icon, in the can buy color, no border
-                if (NeedsSnapshot.InRaid && Settings.RaidBuyIcon!.Value && need.Buy != NeedsSnapshot.EStrength.None)
+                NeedsSnapshot.EStrength raidBuy = Settings.RaidBuyLater!.Value ? need.BuyAll : need.Buy;
+
+                if (NeedsSnapshot.InRaid && Settings.RaidBuyIcon!.Value && raidBuy != NeedsSnapshot.EStrength.None)
                 {
-                    kind = need.Buy;
+                    kind = raidBuy;
                     color = Settings.OverlayBuyColor!.GetValue();
                     iconOnly = true;
                 }
@@ -377,7 +379,7 @@ namespace AllQuestsCheckmarks.Patches
             strength = isLater ? later : 1f;
             // the icon says why: only the sources that are actually missing and that you can act on (in raid what to loot, out of raid what to buy)
             int[] missing = keepSources ?? (NeedsSnapshot.InRaid && !iconOnly ? need.LootBy : need.BuyBy);
-            bool withFuture = keepSources != null || NeedsSnapshot.InRaid && !iconOnly || Settings.BuyFutureNeeds!.Value;
+            bool withFuture = keepSources != null || NeedsSnapshot.InRaid && !iconOnly || (NeedsSnapshot.InRaid ? Settings.RaidBuyLater!.Value : Settings.BuyFutureNeeds!.Value);
             bool fromQuest = missing[NeedsSnapshot.QuestNow] > 0 || withFuture && missing[NeedsSnapshot.QuestLater] > 0;
             bool fromHideout = missing[NeedsSnapshot.HideoutNow] > 0 || withFuture && missing[NeedsSnapshot.HideoutLater] > 0;
 

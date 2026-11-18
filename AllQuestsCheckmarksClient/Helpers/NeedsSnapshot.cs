@@ -52,6 +52,7 @@ namespace AllQuestsCheckmarks.Helpers
             public bool FromHideout;
             public EStrength Loot;
             public EStrength Buy;
+            public EStrength BuyAll;
 
             // what is still missing per source: FiR copies (and non-FiR copies that can't be bought) to loot, non-FiR copies to buy
             public readonly int[] LootBy = new int[Sources];
@@ -482,6 +483,7 @@ namespace AllQuestsCheckmarks.Helpers
                 }
 
                 need.Buy = Strength(buyForOverlay);
+                need.BuyAll = Strength(need.BuyBy);
 
                 if (need.HandIn || need.CollectorMissing || need.LootBy.Any(n => n > 0) || need.BuyBy.Any(n => n > 0)
                     || need.KeepFirBy.Any(n => n > 0) || need.KeepAnyBy.Any(n => n > 0))

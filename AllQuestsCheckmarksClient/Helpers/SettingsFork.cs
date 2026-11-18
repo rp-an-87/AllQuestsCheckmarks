@@ -28,7 +28,9 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<bool>? BuyFutureNeeds;
         public static ConfigEntry<bool>? RaidBuyIcon;
+        public static ConfigEntry<bool>? KeepNow;
         public static ConfigEntry<bool>? KeepIcon;
+        public static ConfigEntry<bool>? RaidBuyLater;
         public static ConfigEntry<bool>? OverlayDashedLater;
         public static ConfigEntry<bool>? OverlayInHideoutRequirements;
         public static ConfigEntry<bool>? ClassicCheckmarks;
@@ -112,10 +114,10 @@ namespace AllQuestsCheckmarks.Helpers
             );
 
             BuyFutureNeeds = needs.BindConfig(
-                "Can buy for future needs",
+                "Dashed buy border for later needs (stash)",
                 false,
-                "Whether or not items you could buy but only need for future quests or hideout upgrades get the overlay. " +
-                    "Off: only what you need now is outlined (the tooltip list always shows everything)"
+                "Whether or not items in your stash that you could buy but only need for future quests or hideout upgrades get the dashed can buy overlay. " +
+                    "Off: only what you are missing now is outlined (the tooltip list always shows everything)"
             );
 
             RaidBuyIcon = needs.BindConfig(
@@ -125,8 +127,20 @@ namespace AllQuestsCheckmarks.Helpers
                     "so they can be told apart from the ones you have to loot"
             );
 
+            RaidBuyLater = needs.BindConfig(
+                "Buy icon for later needs (in raid)",
+                true,
+                "Whether or not the buy icon in raid also shows for items you only need for future quests or hideout upgrades. Needs the setting above it"
+            );
+
+            KeepNow = needs.BindConfig(
+                "Keep: covers the open upgrades (stash)",
+                true,
+                "Whether or not items in your stash that cover everything the upgrades you can start now need get the keep icon with a solid border"
+            );
+
             KeepIcon = needs.BindConfig(
-                "Show items to keep in the stash",
+                "Keep: held for later needs (stash)",
                 true,
                 "Whether or not items you hold that are earmarked for a later quest or a hideout upgrade get just their icon (in the keep color, no border) in your stash, " +
                     "so you know not to sell them. The tooltip lists how many to keep"
