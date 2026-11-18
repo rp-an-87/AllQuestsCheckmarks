@@ -34,6 +34,7 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<float>? OverlayLaterStrength;
         public static ConfigEntry<float>? OverlayIconScale;
         public static ConfigEntry<bool>? OverlayDashedLater;
+        public static ConfigEntry<float>? OverlayClockGap;
         public static ConfigEntry<float>? OverlayDashedStrength;
         public static ConfigEntry<bool>? OverlayIconMatchColor;
         public static ConfigEntry<int>? OverlayBorderThickness;
@@ -207,6 +208,13 @@ namespace AllQuestsCheckmarks.Helpers
                 "Overlay icon in the overlay color",
                 true,
                 "Whether the overlay icon (and the clock for later needs) has the same color as the overlay border, so it reads as one thing. Off: white"
+            );
+
+            OverlayClockGap = general.BindConfig(
+                "Overlay clock spacing",
+                -0.15f,
+                "Space between the icon and the clock for later needs, as a fraction of the icon size (0 = the two icon squares touch, negative = they overlap a little, the picture usually has an empty edge)",
+                acceptableValue: new AcceptableValueRange<float>(-0.6f, 0.6f)
             );
 
             OverlayDashedLater = general.BindConfig(

@@ -461,7 +461,7 @@ namespace AllQuestsCheckmarks.Patches
             }
 
             state.Clock.rectTransform.sizeDelta = new Vector2(side, side);
-            state.Clock.rectTransform.anchoredPosition = new Vector2(2f, 0f);
+            state.Clock.rectTransform.anchoredPosition = new Vector2(side * Settings.OverlayClockGap!.Value, 0f);
             state.Clock.color = color;
             state.Clock.gameObject.SetActive(true);
         }
@@ -719,8 +719,8 @@ namespace AllQuestsCheckmarks.Patches
                 return cached;
             }
 
-            int width = horizontal ? 12 : 2;
-            int height = horizontal ? 2 : 12;
+            int width = horizontal ? 8 : 1;
+            int height = horizontal ? 1 : 8;
             Texture2D texture = new(width, height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
 
             for (int y = 0; y < height; y++)
@@ -728,7 +728,7 @@ namespace AllQuestsCheckmarks.Patches
                 for (int x = 0; x < width; x++)
                 {
                     int along = horizontal ? x : y;
-                    texture.SetPixel(x, y, along < 8 ? Color.white : Color.clear);
+                    texture.SetPixel(x, y, along < 3 ? Color.white : Color.clear);
                 }
             }
 
@@ -792,14 +792,14 @@ namespace AllQuestsCheckmarks.Patches
                 state.DashRoot = root;
             }
 
-            float thickness = Mathf.Max(2, Settings.OverlayBorderThickness!.Value);
+            float thickness = Mathf.Max(1, Settings.OverlayBorderThickness!.Value);
             Color tint = new(color.r, color.g, color.b, Mathf.Clamp01(Settings.OverlayDashedStrength!.Value));
 
             for (int i = 0; i < state.Dashes.Count; i++)
             {
                 Image edge = state.Dashes[i];
                 edge.color = tint;
-                edge.pixelsPerUnitMultiplier = 2f / thickness;
+                edge.pixelsPerUnitMultiplier = 1f / thickness;
                 edge.rectTransform.sizeDelta = i < 2 ? new Vector2(0, thickness) : new Vector2(thickness, 0);
             }
 
