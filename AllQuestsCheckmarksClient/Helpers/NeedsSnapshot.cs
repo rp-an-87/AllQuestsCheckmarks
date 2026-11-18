@@ -312,6 +312,13 @@ namespace AllQuestsCheckmarks.Helpers
                 }
             }
 
+            // money is earned, not looted or bought: it is no need for the overlays
+            needs.RemoveAll(n =>
+            {
+                n.Targets = [.. n.Targets.Where(t => !StashHelper.MoneyIds.Contains(t))];
+                return n.Targets.Count == 0;
+            });
+
             // how many needs want each item: for a shared need the items few others want are used first
             Dictionary<MongoID, int> contest = [];
             foreach (NeedRec need in needs)
