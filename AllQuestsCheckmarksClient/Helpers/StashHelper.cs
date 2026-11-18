@@ -71,11 +71,17 @@ namespace AllQuestsCheckmarks.Helpers
         // The pretend raid switch (testing): count like in a raid, the stash only, plus what you carry when that setting is on
         private static IEnumerable<Item> PretendRaidItems(Profile profile)
         {
-            IEnumerable<Item> items = profile.Inventory.GetPlayerItems(EPlayerItems.HideoutStashes);
+            // everything you own except what is on your character (the stash flag of the inventory does not list the stash in the menu)
+            IEnumerable<Item> equipment = profile.Inventory.GetPlayerItems(EPlayerItems.Equipment | EPlayerItems.QuestItems).ToList();
 
-            return Settings.IncludeRaidItems!.Value
-                ? items.Concat(profile.Inventory.GetPlayerItems(EPlayerItems.Equipment | EPlayerItems.QuestItems))
-                : items;
+            if (Settings.IncludeRaidItems!.Value)
+            {
+                return profile.Inventory.GetPlayerItems();
+            }
+
+            HashSet<string> carried = [.. equipment.Select(i => i.Id.ToString())];
+
+            return profile.Inventory.GetPlayerItems().Where(i => !carried.Contains(i.Id.ToString()));
         }
 
         // What you carry in a raid (equipment and quest items): it goes to the stash when you extract
