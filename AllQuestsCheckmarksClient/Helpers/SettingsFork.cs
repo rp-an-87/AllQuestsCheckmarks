@@ -67,6 +67,17 @@ namespace AllQuestsCheckmarks.Helpers
         public static ConfigEntry<bool>? DebugInRaid;
         public static ConfigEntry<bool>? DebugEmptyStash;
 
+        // Every setting of this fork says so in its description, so it can be told apart from upstream's in F12
+        private static ConfigEntry<T> ForkBind<T>(this ConfigCategory category, string key, T defaultValue, string description, bool hide = false, AcceptableValueBase? acceptableValue = null)
+        {
+            return category.BindConfig(key, defaultValue, "[Fork] " + description, hide, acceptableValue);
+        }
+
+        private static ConfigEntry<UnityEngine.Color> ForkColor(this ConfigCategory category, string key, string defaultValue, string description, bool hide = false)
+        {
+            return category.BindColor(key, defaultValue, "[Fork] " + description, hide);
+        }
+
         private static void InitFork(ConfigFile config)
         {
             ConfigCategory needs = config.MakeCategory(4, "Needs and overlays");
@@ -78,35 +89,36 @@ namespace AllQuestsCheckmarks.Helpers
             /*
              * NEEDS AND OVERLAYS
              */
-            IncludeHideout = needs.BindConfig(
+            IncludeHideout = needs.ForkBind(
                 "Include hideout upgrades (needs Wishlist Extended fork)",
                 true,
                 "Whether or not hideout upgrade requirements (FiR and non-FiR) count as needs, in the tooltip and in the overlays. " +
-                    "Needs the Wishlist Extended fork; has no effect without it"
+                    "Needs the Wishlist Extended fork; has no effect without it. Independent of that mod's 'Hideout upgrades wishlist mode': " +
+                    "every remaining upgrade counts here, whatever the wishlist settings are"
             );
 
-            SharedConditions = needs.BindConfig(
+            SharedConditions = needs.ForkBind(
                 "Shared quest conditions",
                 true,
                 "Whether or not quest conditions that accept several item types for one shared count (for example any medical item) are counted together. " +
                     "Off: they are ignored by the overlays and the checklist (each item just lists the quest)"
             );
 
-            CheckmarkOnNonFir = needs.BindConfig(
+            CheckmarkOnNonFir = needs.ForkBind(
                 "Show checkmark on non-FiR items that are needed FiR",
                 true,
                 "Whether or not a non-FiR copy of an item that quests or hideout upgrades only accept found in raid still counts as relevant " +
                     "(the tooltip says it is not FiR, and in classic mode it gets a checkmark)"
             );
 
-            UseOverlays = needs.BindConfig(
+            UseOverlays = needs.ForkBind(
                 "Need overlays",
                 true,
                 "Whether or not items you have to act on get an overlay: in raid what you have to loot (and the Collector items you lack), " +
                     "out of raid what you can hand in and what you still have to buy. Strong when needed now, dashed when needed later"
             );
 
-            OverlayLaterStrength = look.BindConfig(
+            OverlayLaterStrength = look.ForkBind(
                 "Overlay strength for later needs",
                 1f,
                 "How strong the overlay is for items needed only for future quests or hideout upgrades (1 = same as needed now: they only differ by the dashed border)",
@@ -114,61 +126,62 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
             );
 
-            BuyFutureNeeds = needs.BindConfig(
+            BuyFutureNeeds = needs.ForkBind(
                 "Dashed buy border for later needs (stash)",
                 false,
                 "Whether or not items in your stash that you could buy but only need for future quests or hideout upgrades get the dashed can buy overlay. " +
                     "Off: only what you are missing now is outlined (the tooltip list always shows everything)"
             );
 
-            RaidBuyIcon = needs.BindConfig(
+            RaidBuyIcon = needs.ForkBind(
                 "Show buyable items that are needed in raid",
                 true,
                 "Whether or not items you need but can simply buy get just their icon (in the can buy color, no border or glow) while in raid, " +
                     "so they can be told apart from the ones you have to loot"
             );
 
-            RaidBuyLater = needs.BindConfig(
+            RaidBuyLater = needs.ForkBind(
                 "Buy icon for later needs (in raid)",
                 true,
                 "Whether or not the buy icon in raid also shows for items you only need for future quests or hideout upgrades. Needs the setting above it"
             );
 
-            KeepNow = needs.BindConfig(
+            KeepNow = needs.ForkBind(
                 "Keep: covers the open upgrades (stash)",
                 true,
                 "Whether or not items in your stash that cover everything the upgrades you can start now need get the keep icon with a solid border"
             );
 
-            KeepIcon = needs.BindConfig(
+            KeepIcon = needs.ForkBind(
                 "Keep: held for later needs (stash)",
                 true,
                 "Whether or not items you hold that are earmarked for a later quest or a hideout upgrade get just their icon (in the keep color, no border) in your stash, " +
                     "so you know not to sell them. The tooltip lists how many to keep"
             );
 
-            OverlayDashedLater = look.BindConfig(
+            OverlayDashedLater = look.ForkBind(
                 "Dashed border for later needs",
                 true,
                 "Whether or not items needed only later get a dashed border instead of the solid one",
                 hide: true
             );
 
-            OverlayInHideoutRequirements = needs.BindConfig(
+            OverlayInHideoutRequirements = needs.ForkBind(
                 "Overlays on hideout requirement items",
                 true,
                 "Whether or not the item icons of a hideout upgrade's requirements (the construction requirements screen) get the overlay too, " +
                     "for example the green can buy overlay on a requirement you do not have yet"
             );
 
-            ClassicCheckmarks = needs.BindConfig(
+            ClassicCheckmarks = needs.ForkBind(
                 "Classic colored checkmarks",
                 false,
                 "Whether or not to use the original colored checkmark statuses (quest, future, hideout, collector, enough...), set up in sections 1. General and 2. Colors. " +
-                    "Off: the checkmark is only the grey found in raid marker and the overlays show what you need"
+                    "Off: the checkmark is only the grey found in raid marker and the overlays show what you need. " +
+                    "The checkmark settings of upstream (1. General: Hide checkmark if have enough; 2. Colors: all the checkmark colors) only matter with this on and are advanced otherwise"
             );
 
-            VanillaCheckmarkInHideout = needs.BindConfig(
+            VanillaCheckmarkInHideout = needs.ForkBind(
                 "Vanilla checkmark on hideout requirement items",
                 true,
                 "Whether or not the item icons of hideout upgrade requirements show the vanilla checkmark (FiR items only) instead of the classic colored ones. " +
@@ -178,31 +191,31 @@ namespace AllQuestsCheckmarks.Helpers
             /*
              * OVERLAY COLORS
              */
-            OverlayHandInColor = colors.BindColor(
+            OverlayHandInColor = colors.ForkColor(
                 "Overlay color - hand in",
                 "#ffc71a",
                 "Color of the overlay on items you can hand in to a started quest (out of raid, in your stash)"
             );
 
-            OverlayCollectorColor = colors.BindColor(
+            OverlayCollectorColor = colors.ForkColor(
                 "Overlay color - collector",
                 "#f22626",
                 "Color of the overlay on Collector items you don't have yet (in raid)"
             );
 
-            OverlayLootColor = colors.BindColor(
+            OverlayLootColor = colors.ForkColor(
                 "Overlay color - must loot",
                 "#ff5a2e",
                 "Color of the overlay on items you have to loot (in raid)"
             );
 
-            OverlayBuyColor = colors.BindColor(
+            OverlayBuyColor = colors.ForkColor(
                 "Overlay color - can buy",
                 "#4fd36b",
                 "Color of the overlay on items you still have to buy (out of raid), and of the icon of buyable items in raid"
             );
 
-            OverlayKeepColor = colors.BindColor(
+            OverlayKeepColor = colors.ForkColor(
                 "Overlay color - keep",
                 "#4aa8ff",
                 "Color of the icon on items you hold that you should keep for later needs (in your stash)"
@@ -211,34 +224,35 @@ namespace AllQuestsCheckmarks.Helpers
             /*
              * TOOLTIP
              */
-            HoverItemTooltip = tooltip.BindConfig(
+            HoverItemTooltip = tooltip.ForkBind(
                 "Show tooltip when hovering the item",
                 true,
-                "Whether or not to also show the checkmark tooltip when hovering the item itself, not only the checkmark"
+                "Whether or not to also show the checkmark tooltip when hovering the item itself, not only the checkmark. " +
+                    "The Wishlist Extended fork then leaves its own hideout and quest lines out (its setting 'Leave hideout and quests to AllQuestsCheckmarks fork')"
             );
 
-            SeparatedTooltip = tooltip.BindConfig(
+            SeparatedTooltip = tooltip.ForkBind(
                 "Separated tooltip layout",
                 true,
                 "Whether or not to use the layout: found in raid label (green), separator, stash and totals, separator, quests and hideout. " +
                     "Off keeps the original single block"
             );
 
-            ActionLine = tooltip.BindConfig(
+            ActionLine = tooltip.ForkBind(
                 "Action line in the tooltip",
                 true,
                 "Whether or not the tooltip should end with the checklist saying what to do with the item and why " +
                     "(can hand in, can buy, keep, must get FiR)"
             );
 
-            CompactFirLabels = tooltip.BindConfig(
+            CompactFirLabels = tooltip.ForkBind(
                 "Small FiR labels",
                 true,
                 "Whether or not FiR / non-FiR labels in the tooltip lines should be smaller, with non-FiR in grey",
                 hide: true
             );
 
-            HideoutTextColor = tooltip.BindColor(
+            HideoutTextColor = tooltip.ForkColor(
                 "Custom text color - hideout",
                 "#4dc3ff",
                 "Custom color of hideout upgrades text (the other text colors are in section 3. Text)"
@@ -247,7 +261,7 @@ namespace AllQuestsCheckmarks.Helpers
             /*
              * OVERLAY LOOK (advanced)
              */
-            OverlayBorderMultiplier = look.BindConfig(
+            OverlayBorderMultiplier = look.ForkBind(
                 "Overlay border multiplier",
                 1f,
                 "Multiplies how visible the game's border is (on top of strong / later). 1 = as is, above 1 = more visible, 0 = invisible",
@@ -255,7 +269,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0f, 4f)
             );
 
-            OverlayGlowMultiplier = look.BindConfig(
+            OverlayGlowMultiplier = look.ForkBind(
                 "Overlay glow multiplier",
                 1f,
                 "Multiplies how visible the game's glow is (on top of strong / later). 1 = as is, above 1 = more visible, 0 = invisible",
@@ -263,7 +277,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0f, 4f)
             );
 
-            OverlayDashedStrength = look.BindConfig(
+            OverlayDashedStrength = look.ForkBind(
                 "Dashed border strength",
                 1f,
                 "How visible the dashed border of later needs is (1 = fully)",
@@ -271,7 +285,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0.1f, 1f)
             );
 
-            OverlayDashCorner = look.BindConfig(
+            OverlayDashCorner = look.ForkBind(
                 "Dashed border strong corners",
                 EDashCorner.Diagonal,
                 "Where the dashed border of later needs is at its strongest; it fades away from there.\n" +
@@ -281,7 +295,7 @@ namespace AllQuestsCheckmarks.Helpers
                 hide: true
             );
 
-            OverlayDashFade = look.BindConfig(
+            OverlayDashFade = look.ForkBind(
                 "Dashed border fade amount",
                 0.75f,
                 "How much the dashed border fades away from its strong corners (0 = not at all, 1 = until it is gone at the far corners)",
@@ -289,7 +303,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0f, 1f)
             );
 
-            OverlayDashLength = look.BindConfig(
+            OverlayDashLength = look.ForkBind(
                 "Dash length",
                 3f,
                 "Length of one dash of the dashed border, in pixels",
@@ -297,7 +311,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(1f, 12f)
             );
 
-            OverlayDashGap = look.BindConfig(
+            OverlayDashGap = look.ForkBind(
                 "Dash gap",
                 2f,
                 "Gap between two dashes of the dashed border, in pixels",
@@ -305,7 +319,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(1f, 12f)
             );
 
-            OverlayBorderThickness = look.BindConfig(
+            OverlayBorderThickness = look.ForkBind(
                 "Dashed border width",
                 1,
                 "Width of the dashed border, in pixels",
@@ -313,7 +327,7 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<int>(1, 4)
             );
 
-            OverlayIconScale = look.BindConfig(
+            OverlayIconScale = look.ForkBind(
                 "Overlay icon scale",
                 1f,
                 "Scale of the overlay icon (1 = the size of the game's own wishlist icon). The position is the game's: it knows where the item has other markers",
@@ -321,14 +335,14 @@ namespace AllQuestsCheckmarks.Helpers
                 acceptableValue: new AcceptableValueRange<float>(0.5f, 2.5f)
             );
 
-            OverlayIconMatchColor = look.BindConfig(
+            OverlayIconMatchColor = look.ForkBind(
                 "Overlay icon in the overlay color",
                 true,
                 "Whether or not the overlay icon has the same color as the overlay border, so it reads as one thing. Off: white",
                 hide: true
             );
 
-            OverlayFrameBudget = look.BindConfig(
+            OverlayFrameBudget = look.ForkBind(
                 "Overlay drawing budget",
                 2f,
                 "Most milliseconds per frame spent drawing overlays on item icons. Lower is smoother, higher is faster to appear when a screen opens",
@@ -339,7 +353,7 @@ namespace AllQuestsCheckmarks.Helpers
             /*
              * TESTING (advanced)
              */
-            DebugInRaid = testing.BindConfig(
+            DebugInRaid = testing.ForkBind(
                 "Pretend to be in raid",
                 false,
                 "Testing only: the need overlays behave as if a raid was running (loot and Collector overlays instead of hand-in and buy). " +
@@ -347,7 +361,7 @@ namespace AllQuestsCheckmarks.Helpers
                 hide: true
             );
 
-            DebugEmptyStash = testing.BindConfig(
+            DebugEmptyStash = testing.ForkBind(
                 "Pretend the stash is empty",
                 false,
                 "Testing only: the need overlays ignore what you hold, so every item you may need shows its overlay. Reopen the stash screen to see the change",

@@ -49,3 +49,5 @@ New files (ours, no upstream counterpart): `NeedsSnapshot`, `NeedsOverlay`, `Das
 | 5. Overlay colors, 6. Tooltip, 7. Overlay look (advanced), 8. Testing (advanced) | fork | used |
 
 Config migration: renamed or moved fork keys are not migrated by code. When a key changes, edit the owner's `BepInEx\config\com.zgfuedkx.allquestscheckmarks.cfg` with a backup first (see git history of this file for earlier renames).
+
+Full settings cross reference of both forks: `dev-own\docs\checkmarks-settings-reference.md` (workspace, not in this repo). Fork settings start their F12 description with `[Fork]`.
