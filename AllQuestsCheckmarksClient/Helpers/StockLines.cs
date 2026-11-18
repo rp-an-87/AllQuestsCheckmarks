@@ -61,7 +61,13 @@ namespace AllQuestsCheckmarks.Helpers
             List<string> groups = [];
 
             // in stash
-            List<string> lines = [Main("aqc_stock_in_stash".Localized(null), stash.Total, covered ? Green : "#FFFFFF"), Detail(Parts(stash.Fir, stash.NonFir, true))];
+            List<string> lines = [Main("aqc_stock_in_stash".Localized(null), stash.Total, covered ? Green : "#FFFFFF")];
+
+            // nothing in the stash: no "0 FiR · 0 Non-FiR" under it
+            if (stash.Total > 0)
+            {
+                lines.Add(Detail(Parts(stash.Fir, stash.NonFir, true)));
+            }
 
             if (carried.Total > 0)
             {
