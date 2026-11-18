@@ -12,7 +12,7 @@
 	"aqc_squad_quests": "Required for squad:",
 	"aqc_copy_not_fir": "<color=#8A8A8A>This copy is not FiR</color>",
 	"aqc_action_collector": "<size=85%><color=#B8B8B8>Collector item: <color=#FF6666>have one ready</color></color></size>",
-	"aqc_header_keep": "Keep, don't sell or use:",
+	"aqc_header_keep": "Keep, don't sell or hand in:",
 	"aqc_header_buy": "Can buy:",
 	"aqc_header_fir": "Must get FiR:",
 	"aqc_header_unbuyable": "Can't be bought, must find:",
