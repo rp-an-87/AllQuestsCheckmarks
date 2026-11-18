@@ -1,7 +1,7 @@
 {
 	"aqc_stock_in_stash": "In Stash",
 	"aqc_stock_needed": "Needed",
-	"aqc_stock_needed_min": "Needed (at least)",
+	"aqc_stock_at_least": "(at least)",
 	"aqc_stock_missing": "Missing",
 	"aqc_stock_now": "now",
 	"aqc_active_quests": "Active quests:",

@@ -46,8 +46,10 @@ namespace AllQuestsCheckmarks.Helpers
             return string.Join(" · ", parts);
         }
 
-        private class Row(string label, int total, string details, string color = WhiteColor)
+        private class Row(string label, int total, string details, string color = WhiteColor, string suffix = "")
         {
+            // small grey text right after the figure ("(at least)")
+            public string Suffix = suffix;
             public string Label = label;
             public int Total = total;
             public string Details = details;
@@ -57,11 +59,11 @@ namespace AllQuestsCheckmarks.Helpers
         // the details of every row start in the same column, set from the longest "label: figure" (about 10 px per character)
         private static string[] Layout(List<Row> rows)
         {
-            int column = rows.Max(r => r.Label.Length + 2 + NumberFormat.Compact(r.Total).Length) * 10 + 16;
+            int column = rows.Max(r => (r.Label.Length + 2 + NumberFormat.Compact(r.Total).Length) * 10 + r.Suffix.Length * 7) + 16;
 
             return [.. rows.Select(r =>
             {
-                string line = $"{r.Label}: {Num(r.Total, r.Color)}";
+                string line = $"{r.Label}: {Num(r.Total, r.Color)}" + (r.Suffix.Length > 0 ? " " + Small($"<color={NonFirColor}>{r.Suffix}</color>") : "");
                 return r.Details.Length > 0 ? line + $"<pos={column}px>" + Small(r.Details) : line;
             })];
         }
@@ -97,7 +99,7 @@ namespace AllQuestsCheckmarks.Helpers
                     details += $" <color={NonFirColor}>({Num(now)} {"aqc_stock_now".Localized(null)})</color>";
                 }
 
-                rows.Add(new Row((shared ? "aqc_stock_needed_min" : "aqc_stock_needed").Localized(null), needFir + needAny, details));
+                rows.Add(new Row("aqc_stock_needed".Localized(null), needFir + needAny, details, WhiteColor, shared ? "aqc_stock_at_least".Localized(null) : ""));
             }
 
             if (missFir + missNon > 0)
