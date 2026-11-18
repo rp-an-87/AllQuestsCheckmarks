@@ -263,7 +263,7 @@ namespace AllQuestsCheckmarks.Helpers
             }
 
             // quests not started yet: the quest data of this mod (no progress, nothing handed in yet)
-            foreach (QuestsData.QuestPool pool in QuestsData.Pools)
+            foreach (QuestsData.QuestPool pool in Settings.OnlyActiveQuests!.Value ? [] : QuestsData.Pools)
             {
                 if (started.Contains(pool.QuestId))
                 {

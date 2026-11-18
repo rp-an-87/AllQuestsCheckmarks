@@ -355,6 +355,31 @@ namespace AllQuestsCheckmarks.Helpers
             );
 
             // the needs depend on almost every setting: rebuild them whenever one changes
+            // upstream's checkmark settings only matter for the classic colored checkmarks: advanced unless those are on
+            // (done here so upstream's Settings.cs stays untouched)
+            ConfigEntryBase?[] classicOnly =
+            [
+                HideFulfilled, MarkEnoughItems, UseCustomQuestColor, CustomQuestColor, CheckmarkColor,
+                NonFirColor, CollectorColor, EnoughItemsColor, SquadColor,
+            ];
+
+            void ApplyClassicOnly()
+            {
+                foreach (ConfigEntryBase? entry in classicOnly)
+                {
+                    foreach (object tag in entry?.Description.Tags ?? [])
+                    {
+                        if (tag is ConfigurationManagerAttributes attributes)
+                        {
+                            attributes.IsAdvanced = !ClassicCheckmarks!.Value;
+                        }
+                    }
+                }
+            }
+
+            ApplyClassicOnly();
+            ClassicCheckmarks!.SettingChanged += (_, _) => ApplyClassicOnly();
+
             config.SettingChanged += (_, _) => NeedsSnapshot.Invalidate();
         }
     }
