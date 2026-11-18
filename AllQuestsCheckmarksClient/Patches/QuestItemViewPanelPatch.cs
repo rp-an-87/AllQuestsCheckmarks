@@ -79,7 +79,8 @@ namespace AllQuestsCheckmarks.Patches
 
             bool showNonFir = Settings.IncludeNonFir!.Value;
             StashHelper.ItemsCount inStash = NeedsSnapshot.Held(item.TemplateId);
-            string stashLine = StockLines.Build(item.TemplateId);
+            // filled in when the tooltip is shown (what you hold and carry changes)
+            string stashLine = ItemHoverTooltip.StockToken;
 
             bool neededForActive = false;
             bool neededForFuture = false;
@@ -384,6 +385,8 @@ namespace AllQuestsCheckmarks.Patches
             {
                 ____tooltipText += ItemHoverTooltip.ActionToken;
             }
+
+            ItemHoverTooltip.SetTemplate(__instance, ____tooltipText);
 
             // the tooltip text above stays; hovering the item uses it whenever something is needed, even if no checkmark is drawn
             ItemHoverTooltip.SetRelevant(__instance, status != QuestsHelper.ECheckmarkStatus.None);

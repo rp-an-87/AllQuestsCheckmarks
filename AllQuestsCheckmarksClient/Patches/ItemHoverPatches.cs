@@ -39,6 +39,18 @@ namespace AllQuestsCheckmarks.Patches
         // The action line depends on what you hold right now, so the tooltip text carries a token that is replaced when it is shown
         public const string ActionToken = "\uE000";
 
+        // the stash and needed lines depend on what you hold (and carry) right now too
+        public const string StockToken = "\uE001";
+
+        // the tooltip text as built, with its tokens: every hover starts from it (a text that already had its tokens replaced would show old numbers)
+        private static readonly ConditionalWeakTable<QuestItemViewPanel, StrongBox<string>> _templates = new();
+
+        public static void SetTemplate(QuestItemViewPanel panel, string text)
+        {
+            _templates.Remove(panel);
+            _templates.Add(panel, new StrongBox<string>(text));
+        }
+
         private static readonly ConditionalWeakTable<QuestItemViewPanel, StrongBox<MongoID>> _items = new();
 
         public static void SetItem(QuestItemViewPanel panel, MongoID templateId)
@@ -50,13 +62,21 @@ namespace AllQuestsCheckmarks.Patches
         // Replaces the token in the panel's tooltip text with the current action line (a separator and a small line), or removes it
         public static string Resolve(QuestItemViewPanel panel, string text)
         {
-            if (string.IsNullOrEmpty(text) || !text.Contains(ActionToken))
+            if (_templates.TryGetValue(panel, out StrongBox<string> template))
+            {
+                text = template.Value;
+            }
+
+            if (string.IsNullOrEmpty(text) || !text.Contains(ActionToken) && !text.Contains(StockToken))
             {
                 return text;
             }
 
-            string action = _items.TryGetValue(panel, out StrongBox<MongoID> id) ? BuildAction(id.Value) : "";
-            return text.Replace(ActionToken, action.Length > 0 ? "\n" + TooltipSeparator.Line + "\n" + action : "");
+            bool known = _items.TryGetValue(panel, out StrongBox<MongoID> id);
+            string action = known ? BuildAction(id.Value) : "";
+            string stock = known ? StockLines.Build(id.Value) : "";
+
+            return text.Replace(StockToken, stock).Replace(ActionToken, action.Length > 0 ? "\n" + TooltipSeparator.Line + "\n" + action : "");
         }
 
         // The checklist: only what you can act on, one line per source, current needs bright and future ones dim.
