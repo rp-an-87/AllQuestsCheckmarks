@@ -50,7 +50,7 @@ namespace AllQuestsCheckmarks.Helpers
             }
             else
             {
-                items = profile.Inventory.GetPlayerItems().Where(i => i.TemplateId == itemId);
+                items = (Settings.DebugInRaid!.Value ? PretendRaidItems(profile) : profile.Inventory.GetPlayerItems()).Where(i => i.TemplateId == itemId);
             }
 
             foreach (Item item in items)
@@ -66,6 +66,16 @@ namespace AllQuestsCheckmarks.Helpers
             }
 
             return itemsCount;
+        }
+
+        // The pretend raid switch (testing): count like in a raid, the stash only, plus what you carry when that setting is on
+        private static IEnumerable<Item> PretendRaidItems(Profile profile)
+        {
+            IEnumerable<Item> items = profile.Inventory.GetPlayerItems(EPlayerItems.HideoutStashes);
+
+            return Settings.IncludeRaidItems!.Value
+                ? items.Concat(profile.Inventory.GetPlayerItems(EPlayerItems.Equipment | EPlayerItems.QuestItems))
+                : items;
         }
 
         // What you carry in a raid (equipment and quest items): it goes to the stash when you extract
@@ -126,7 +136,7 @@ namespace AllQuestsCheckmarks.Helpers
             }
             else
             {
-                items = profile.Inventory.GetPlayerItems();
+                items = Settings.DebugInRaid!.Value ? PretendRaidItems(profile) : profile.Inventory.GetPlayerItems();
             }
 
             foreach (Item item in items)
