@@ -10,6 +10,8 @@ namespace AllQuestsCheckmarks.Helpers
         // The corner where the dashed border is strongest
         public enum EDashCorner
         {
+            Diagonal,
+            AntiDiagonal,
             BottomLeft,
             BottomRight,
             TopLeft,
@@ -232,15 +234,18 @@ namespace AllQuestsCheckmarks.Helpers
             );
 
             OverlayDashCorner = general.BindConfig(
-                "Dashed border strongest corner",
-                EDashCorner.BottomLeft,
-                "The corner where the dashed border of later needs is at its strongest; it fades toward the opposite corner. None = even all around"
+                "Dashed border strong corners",
+                EDashCorner.Diagonal,
+                "Where the dashed border of later needs is at its strongest; it fades away from there.\n" +
+                    "Diagonal - top left and bottom right (like the game's wishlist outline)\n" +
+                    "AntiDiagonal - top right and bottom left\n" +
+                    "A single corner, or None for even all around"
             );
 
             OverlayDashFade = general.BindConfig(
-                "Dashed border fade",
-                0.25f,
-                "How visible the dashed border still is at the far corner (1 = no fade, 0 = fades out completely)",
+                "Dashed border fade amount",
+                0.75f,
+                "How much the dashed border fades away from its strong corners (0 = not at all, 1 = until it is gone at the far corners)",
                 acceptableValue: new AcceptableValueRange<float>(0f, 1f)
             );
 

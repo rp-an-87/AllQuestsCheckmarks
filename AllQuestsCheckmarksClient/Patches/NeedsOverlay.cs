@@ -694,7 +694,7 @@ namespace AllQuestsCheckmarks.Patches
                 Settings.OverlayDashLength!.Value,
                 Settings.OverlayDashGap!.Value,
                 Mathf.Max(1f, Settings.OverlayBorderThickness!.Value),
-                Settings.OverlayDashFade!.Value,
+                1f - Settings.OverlayDashFade!.Value,
                 Settings.OverlayDashCorner!.Value);
 
             state.Dashed.gameObject.SetActive(true);

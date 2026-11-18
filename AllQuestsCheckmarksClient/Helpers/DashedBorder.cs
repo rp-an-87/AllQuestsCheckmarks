@@ -52,8 +52,10 @@ namespace AllQuestsCheckmarks.Helpers
             float thickness = Mathf.Min(_thickness, Mathf.Min(w, h) / 2f);
             float period = Mathf.Max(1f, _dash + _gap);
             float perimeter = 2f * (w + h);
-            float reach = Mathf.Sqrt(w * w + h * h);
-            Vector2 strong = StrongPoint(rect);
+            // the fade is measured to half the diagonal: the far corners (and the middle of the far edges) are at the faintest
+            float reach = Mathf.Max(1f, Mathf.Sqrt(w * w + h * h) / 2f);
+            Vector2 strongA = StrongPoint(rect, false);
+            Vector2 strongB = StrongPoint(rect, true);
 
             // the border as one line: bottom edge (left to right), right edge (up), top edge (right to left), left edge (down)
             float[] edges = [0f, w, w + h, 2f * w + h, perimeter];
@@ -91,7 +93,10 @@ namespace AllQuestsCheckmarks.Helpers
                             break;
                     }
 
-                    float distance = _corner == Settings.EDashCorner.None ? 0f : Vector2.Distance(new Vector2((x0 + x1) / 2f, (y0 + y1) / 2f), strong) / reach;
+                    Vector2 middle = new((x0 + x1) / 2f, (y0 + y1) / 2f);
+                    float distance = _corner == Settings.EDashCorner.None
+                        ? 0f
+                        : Mathf.Min(Vector2.Distance(middle, strongA), Vector2.Distance(middle, strongB)) / reach;
                     float factor = Mathf.Lerp(1f, _fade, Mathf.Clamp01(distance));
 
                     Color32 tint = color;
@@ -101,10 +106,13 @@ namespace AllQuestsCheckmarks.Helpers
             }
         }
 
-        private Vector2 StrongPoint(Rect rect)
+        // The strong corner(s): one point, or two opposite ones (the second call gives the second one, or the same point for a single corner)
+        private Vector2 StrongPoint(Rect rect, bool second)
         {
             return _corner switch
             {
+                Settings.EDashCorner.Diagonal => second ? new Vector2(rect.xMax, rect.yMin) : new Vector2(rect.xMin, rect.yMax),
+                Settings.EDashCorner.AntiDiagonal => second ? new Vector2(rect.xMin, rect.yMin) : new Vector2(rect.xMax, rect.yMax),
                 Settings.EDashCorner.BottomRight => new Vector2(rect.xMax, rect.yMin),
                 Settings.EDashCorner.TopLeft => new Vector2(rect.xMin, rect.yMax),
                 Settings.EDashCorner.TopRight => new Vector2(rect.xMax, rect.yMax),
